@@ -1,0 +1,125 @@
+body {
+  background-color: #333;
+  font-family: Arial, sans-serif;
+  color: #fff;
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  align-content: center;
+  background-color: #444;
+  width: 30%;
+  padding: 20px;
+  margin: 0 auto;
+  border-radius: 10px;
+}
+
+.logo {
+  width: 10%;
+  margin: 0 auto;
+}
+
+.info-box {
+  background-color: #555;
+  padding: 10px;
+  margin: 10px 0;
+  border-radius: 5px;
+}
+
+h1 {
+  text-align: center;
+  color: #fff;
+}
+
+#messages,
+#dbInserts,
+#tableName,
+#mqttTopic {
+  color: cyan;
+  font-weight: 700;
+}
+
+#timer {
+  color: lightcoral;
+  font-weight: 700;
+}
+
+#countdown {
+  text-align: center;
+}
+
+#db-utils {
+  display: flex;
+  flex-direction: column;
+  align-content: center;
+  background-color: #444;
+  width: 30%;
+  padding: 20px;
+  margin: 0 auto;
+  border-radius: 10px;
+}
+
+#noData {
+  color: lightcoral;
+  font-weight: 700;
+  text-align: center;
+}
+
+#settingsBtn,
+#createTableBtn {
+  width: 30%;
+  padding: 0.5em 1.75em;
+  background-color: aqua;
+  color: black;
+  transition: all 0.3s ease-in-out;
+  cursor: pointer;
+}
+
+#homeBtn {
+  width: 30%;
+  padding: 0.5em 1.75em;
+  background-color: black;
+  color: aqua;
+  transition: all 0.3s ease-in-out;
+  cursor: pointer;
+}
+
+#settingsBtn:hover,
+#createTableBtn:hover {
+  background-color: black;
+  color: aqua;
+}
+
+#homeBtn:hover {
+  background-color: aqua;
+  color: black;
+}
+
+/* Custom styling for the form inputs */
+#table {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  margin-bottom: 10px;
+  box-sizing: border-box;
+  /* Ensure padding and border are included in the width */
+}
+
+#jsonString {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  resize: vertical;
+  /* Allow vertical resizing of textarea */
+  box-sizing: border-box;
+  /* Ensure padding and border are included in the width */
+}
+
+/* Optional: Add hover effect to the input fields */
+#table:hover,
+#jsonString:hover {
+  border-color: #999;
+}

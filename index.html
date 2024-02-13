@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+    <title>Monitoring Page</title>
+    <link rel="stylesheet" type="text/css" href="custom.css">
+  </head>
+
+  <body>
+
+    <div id="panel" class="panel">
+      <img class="logo" src="logo.png" alt="Company Logo">
+      <h1>MONITORING PANEL</h1>
+      <div id="info" class="info-box">
+        <p>Number of messages received from the broker: <span id="messages">Loading...</span></p>
+        <p>Number of messages stored in the database: <span id="dbInserts">Loading...</span></p>
+        <p>Name of the database table: <span id="tableName">Loading...</span></p>
+        <p>MQTT topic: <span id="mqttTopic">Loading...</span></p>
+      </div>
+      <div id="noData" class="info-box" style="display: none;">
+        <p>No data available</p>
+      </div>
+      <div id="countdown" class="info-box">
+        <p>Time remaining until next insert</p>
+        <p><span id="timer">Loading...</span></p>
+      </div>
+      <button type="button" id="settingsBtn">SETTINGS</button>
+    </div>
+    <script>
+      document.getElementById("settingsBtn").onclick = function () {
+        window.location.href = "newdata.html";
+      };
+    </script>
+
+    <script>
+
+      function fetchData() {
+        fetch('/data')
+          .then(response => {
+            if (!response.ok) {
+              throw new Error('Network response was not ok');
+            }
+            return response.json();
+          })
+          .then(data => {
+            document.getElementById('messages').textContent = data.messageCount;
+            document.getElementById('dbInserts').textContent = data.dbInsertCount;
+            document.getElementById('tableName').textContent = data.tableName;
+            document.getElementById('mqttTopic').textContent = data.mqttTopic;
+            // Calculate minutes and seconds
+            const countdown = Math.max(0, Math.floor((data.nextInsertTime - Date.now()) / 1000));
+            const minutes = Math.floor(countdown / 60);
+            const seconds = countdown % 60;
+            document.getElementById('timer').textContent = `${minutes} minutes and ${seconds} seconds`;
+
+            document.getElementById('timer').textContent = `${minutes} minutes and ${seconds} seconds`;
+            if (data.noData) {
+              document.getElementById('noData').style.display = 'block';
+              document.getElementById('countdown').style.display = 'none';
+            } else {
+              document.getElementById('noData').style.display = 'none';
+              document.getElementById('countdown').style.display = 'block';
+            }
+          })
+          .catch(error => {
+            console.error('There has been a problem with your fetch operation:', error);
+          });
+      }
+
+      // Fetch data every second
+      setInterval(fetchData, 5000);
+    </script>
+  </body>
+
+</html>
