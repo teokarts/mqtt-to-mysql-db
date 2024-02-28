@@ -16,5 +16,8 @@
     "mqtt": "^5.3.5",
     "mysql": "^2.18.1",
     "mysql2": "^3.9.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.3"
   }
 }
