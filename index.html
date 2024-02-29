@@ -6,20 +6,44 @@
   </head>
 
   <body>
-    <div id="panels">
+    <div id="panels" class="panels-container">
       <!-- Pane for Topic 1 -->
       <div class="panel" id="panel1">
         <h2>Topic 1: VivusDigester003/Ecu</h2>
-        <div id="info1" class="info-box">
-          <!-- Information for Topic 1 -->
+        <div class="info-box">
+          <p>Database Table: <span class="tableName">Loading...</span></p>
+          <p>
+            Number of messages received from the broker:
+            <span class="messages">Loading...</span>
+          </p>
+          <p>
+            Number of messages stored in the database:
+            <span class="dbInserts">Loading...</span>
+          </p>
+          <p>
+            Time remaining until next insert:
+            <span class="timer">Loading...</span>
+          </p>
         </div>
       </div>
 
       <!-- Pane for Topic 2 -->
       <div class="panel" id="panel2">
         <h2>Topic 2: Poursalidis/Ecu</h2>
-        <div id="info2" class="info-box">
-          <!-- Information for Topic 2 -->
+        <div class="info-box">
+          <p>Database Table: <span class="tableName">Loading...</span></p>
+          <p>
+            Number of messages received from the broker:
+            <span class="messages">Loading...</span>
+          </p>
+          <p>
+            Number of messages stored in the database:
+            <span class="dbInserts">Loading...</span>
+          </p>
+          <p>
+            Time remaining until next insert:
+            <span class="timer">Loading...</span>
+          </p>
         </div>
       </div>
     </div>
@@ -27,26 +51,35 @@
     <script>
       function updatePane(paneId, data) {
         const pane = document.getElementById(paneId);
+        pane.querySelector('.tableName').textContent = data.tableName;
         pane.querySelector('.messages').textContent = data.messageCount;
         pane.querySelector('.dbInserts').textContent = data.dbInsertCount;
-        pane.querySelector('.tableName').textContent = data.tableName;
-        pane.querySelector('.mqttTopic').textContent = data.topic;
-        // Additional details as needed
+        pane.querySelector('.timer').textContent = formatTimeRemaining(
+          data.timeRemaining
+        );
       }
-    </script>
 
-    <script>
+      function formatTimeRemaining(timeRemainingMs) {
+        const minutes = Math.floor(timeRemainingMs / 60000);
+        const seconds = Math.floor((timeRemainingMs % 60000) / 1000);
+        return `${minutes} minutes and ${
+          seconds < 10 ? '0' : ''
+        }${seconds} seconds`;
+      }
+
       function fetchData() {
         fetch('/data')
           .then((response) => response.json())
           .then((data) => {
-            data.stats.forEach((stat) => {
-              if (stat.topic === 'VivusDigester003/Ecu') {
-                updatePane('info1', stat);
-              } else if (stat.topic === 'Poursalidis/Ecu') {
-                updatePane('info2', stat);
-              }
-            });
+            if (data.stats) {
+              data.stats.forEach((stat) => {
+                if (stat.topic === 'VivusDigester003/Ecu') {
+                  updatePane('panel1', stat);
+                } else if (stat.topic === 'Poursalidis/Ecu') {
+                  updatePane('panel2', stat);
+                }
+              });
+            }
           })
           .catch((error) => console.error('Fetch error:', error));
       }

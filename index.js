@@ -8,8 +8,15 @@ const topicsConfig = {
   'Poursalidis/Ecu': 'SSAKIS',
 };
 
-// Latest message storage
-let latestMessages = {};
+// Assuming this is at the top level of your index.js
+let statsPerTopic = Object.keys(topicsConfig).reduce((acc, topic) => {
+  acc[topic] = {
+    messageCount: 0,
+    dbInsertCount: 0,
+    lastInsertTime: Date.now(),
+  };
+  return acc;
+}, {});
 
 // Define the MQTT broker options
 const options = {
@@ -37,12 +44,8 @@ client.on('connect', function () {
   });
 });
 
-client.on('message', (receivedTopic, message) => {
-  console.log(`Received message on ${receivedTopic}:`, message.toString());
-  if (topicsConfig.hasOwnProperty(receivedTopic)) {
-    latestMessages[receivedTopic] = message;
-  }
-});
+// Latest message storage
+let lastMessages = {};
 
 // Function to insert data into the database using a new connection pool
 async function insertData(topic, message) {
@@ -77,12 +80,47 @@ async function insertData(topic, message) {
   }
 }
 
-// Insert the most recent message every 30 minutes
+function calculateNextInsertTime(lastInsertTime) {
+  return new Date(lastInsertTime + 30 * 60 * 1000).toISOString();
+}
+
+// Example usage in a function
+function updateStats(topic, message) {
+  if (statsPerTopic[topic]) {
+    statsPerTopic[topic].messageCount += 1;
+    // additional logic...
+  } else {
+    console.error(`No stats entry found for topic: ${topic}`);
+  }
+}
+
+client.on('message', (receivedTopic, message) => {
+  console.log(`Received message on ${receivedTopic}:`, message.toString());
+  if (topicsConfig.hasOwnProperty(receivedTopic)) {
+    lastMessages[receivedTopic] = message; // Store the most recent message
+    if (statsPerTopic[receivedTopic]) {
+      statsPerTopic[receivedTopic].messageCount += 1;
+      // Additional logic as needed
+    } else {
+      console.error(`No stats entry found for topic: ${receivedTopic}`);
+    }
+  }
+});
+
+function calculateNextInsertTime(lastInsertTime) {
+  const nextInsertTime = new Date(lastInsertTime + 30 * 60 * 1000); // 30 minutes from the last insert
+  return nextInsertTime;
+}
+
+// In your interval where you insert data
 setInterval(() => {
-  Object.keys(latestMessages).forEach((topic) => {
-    if (latestMessages[topic]) {
-      insertData(topic, latestMessages[topic]);
-      latestMessages[topic] = null; // Clear after insertion
+  const currentTime = Date.now();
+  Object.keys(lastMessages).forEach((topic) => {
+    if (lastMessages[topic]) {
+      insertData(topic, lastMessages[topic]);
+      statsPerTopic[topic].dbInsertCount += 1;
+      statsPerTopic[topic].lastInsertTime = currentTime; // Update last insert time
+      lastMessages[topic] = null; // Clear after insertion
     }
   });
 }, 30 * 60 * 1000); // 30 minutes
@@ -95,6 +133,26 @@ app.use(express.static(__dirname));
 
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname + '/index.html'));
+});
+
+app.get('/data', (req, res) => {
+  const currentTime = new Date();
+  const preparedData = Object.keys(topicsConfig).map((topic) => {
+    const nextInsertTime = calculateNextInsertTime(
+      statsPerTopic[topic].lastInsertTime
+    );
+    const timeRemaining = nextInsertTime - currentTime; // Time remaining in milliseconds
+
+    return {
+      topic: topic,
+      tableName: topicsConfig[topic],
+      messageCount: statsPerTopic[topic].messageCount,
+      dbInsertCount: statsPerTopic[topic].dbInsertCount,
+      timeRemaining: timeRemaining, // Send the remaining time in milliseconds
+    };
+  });
+
+  res.json({ stats: preparedData });
 });
 
 app.listen(8080, () => {
