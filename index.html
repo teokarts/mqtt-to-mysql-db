@@ -2,48 +2,118 @@
 <html>
   <head>
     <title>Monitoring Page</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css"
+      rel="stylesheet" />
     <link rel="stylesheet" type="text/css" href="custom.css" />
   </head>
 
   <body>
-    <div id="panels" class="panels-container">
+    <div id="panels" class="container panels-container">
       <!-- Pane for Topic 1 -->
-      <div class="panel" id="panel1">
-        <h2>Topic 1: VivusDigester003/Ecu</h2>
-        <div class="info-box">
-          <p>Database Table: <span class="tableName">Loading...</span></p>
-          <p>
-            Number of messages received from the broker:
-            <span class="messages">Loading...</span>
-          </p>
-          <p>
-            Number of messages stored in the database:
-            <span class="dbInserts">Loading...</span>
-          </p>
-          <p>
-            Time remaining until next insert:
-            <span class="timer">Loading...</span>
-          </p>
+      <div class="row g-5">
+        <div class="col-md-4">
+          <div class="panel" id="panel1">
+            <h2>Topic<br /><span>VivusDigester003/Ecu</span></h2>
+            <div class="info-box">
+              <p>DB Table: <span class="tableName">Loading...</span></p>
+              <p>
+                Messages received:
+                <span class="messages">Loading...</span>
+              </p>
+              <p>
+                Messages stored:
+                <span class="dbInserts">Loading...</span>
+              </p>
+              <p>
+                Next insert in:
+                <span class="timer">Loading...</span>
+              </p>
+            </div>
+          </div>
         </div>
-      </div>
 
-      <!-- Pane for Topic 2 -->
-      <div class="panel" id="panel2">
-        <h2>Topic 2: Poursalidis/Ecu</h2>
-        <div class="info-box">
-          <p>Database Table: <span class="tableName">Loading...</span></p>
-          <p>
-            Number of messages received from the broker:
-            <span class="messages">Loading...</span>
-          </p>
-          <p>
-            Number of messages stored in the database:
-            <span class="dbInserts">Loading...</span>
-          </p>
-          <p>
-            Time remaining until next insert:
-            <span class="timer">Loading...</span>
-          </p>
+        <!-- Pane for Topic 2 -->
+        <div class="col-md-4">
+          <div class="panel" id="panel2">
+            <h2>Topic<br /><span>Poursalidis/Ecu</span></h2>
+            <div class="info-box">
+              <p>DB Table: <span class="tableName">Loading...</span></p>
+              <p>
+                Messages received:
+                <span class="messages">Loading...</span>
+              </p>
+              <p>
+                Messages stored:
+                <span class="dbInserts">Loading...</span>
+              </p>
+              <p>
+                Next insert in:
+                <span class="timer">Loading...</span>
+              </p>
+            </div>
+          </div>
+        </div>
+        <!-- Pane for Topic 3 -->
+        <div class="col-md-4">
+          <div class="panel" id="panel3">
+            <h2>Topic<br /><span>VivusTHDigester004/Ecu</span></h2>
+            <div class="info-box">
+              <p>DB Table: <span class="tableName">Loading...</span></p>
+              <p>
+                Messages received:
+                <span class="messages">Loading...</span>
+              </p>
+              <p>
+                Messages stored:
+                <span class="dbInserts">Loading...</span>
+              </p>
+              <p>
+                Next insert in:
+                <span class="timer">Loading...</span>
+              </p>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="panel" id="panel4">
+            <h2>Topic<br /><span>data/tsiap01</span></h2>
+            <div class="info-box">
+              <p>DB Table: <span class="tableName">Loading...</span></p>
+              <p>
+                Messages received:
+                <span class="messages">Loading...</span>
+              </p>
+              <p>
+                Messages stored:
+                <span class="dbInserts">Loading...</span>
+              </p>
+              <p>
+                Next insert in:
+                <span class="timer">Loading...</span>
+              </p>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="panel" id="panel5">
+            <h2>Topic<br /><span>ICR2431/Ch0</span></h2>
+            <div class="info-box">
+              <p>DB Table: <span class="tableName">Loading...</span></p>
+              <p>
+                Messages received:
+                <span class="messages">Loading...</span>
+              </p>
+              <p>
+                Messages stored:
+                <span class="dbInserts">Loading...</span>
+              </p>
+              <p>
+                Next insert in:
+                <span class="timer">Loading...</span>
+              </p>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -52,11 +122,13 @@
       function updatePane(paneId, data) {
         const pane = document.getElementById(paneId);
         pane.querySelector('.tableName').textContent = data.tableName;
-        pane.querySelector('.messages').textContent = data.messageCount;
+        pane.querySelector('.messages').textContent = data.active
+          ? data.messageCount
+          : `${data.messageCount} (stopped)`;
         pane.querySelector('.dbInserts').textContent = data.dbInsertCount;
-        pane.querySelector('.timer').textContent = formatTimeRemaining(
-          data.timeRemaining
-        );
+        pane.querySelector('.timer').textContent = data.active
+          ? formatTimeRemaining(data.timeRemaining)
+          : 'No data received';
       }
 
       function formatTimeRemaining(timeRemainingMs) {
@@ -68,6 +140,7 @@
       }
 
       function fetchData() {
+        // fetch('http://192.168.3.233:8080/data')
         fetch('/data')
           .then((response) => response.json())
           .then((data) => {
@@ -77,6 +150,12 @@
                   updatePane('panel1', stat);
                 } else if (stat.topic === 'Poursalidis/Ecu') {
                   updatePane('panel2', stat);
+                } else if (stat.topic === 'VivusTHDigester004/Ecu') {
+                  updatePane('panel3', stat);
+                } else if (stat.topic === 'data/tsiap01') {
+                  updatePane('panel4', stat);
+                } else if (stat.topic === 'ICR2431/Ch0') {
+                  updatePane('panel5', stat);
                 }
               });
             }

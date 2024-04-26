@@ -11,14 +11,23 @@ body {
 }
 
 .panel {
-  width: 33%; /* Adjust width as per your requirement */
+  
   padding: 1rem;
-  margin: 1rem;
+  min-width: 20rem;
+  
   box-shadow: 0 0 10px rgba(0,0,0,0.5);
   border-radius: 5px;
   background-color: #202020;
-  font-size: 1.3rem;
+  font-size: 0.8rem;
   box-shadow: inset 0 0 10px #b3b2b2;
+}
+
+.panel h2 {
+  font-size: 1.4rem;
+}
+
+h2 span {
+  color: aqua;
 }
 
 .logo {
@@ -67,62 +76,4 @@ h1 {
   color: lightcoral;
   font-weight: 700;
   text-align: center;
-}
-
-#settingsBtn,
-#createTableBtn {
-  width: 30%;
-  padding: 0.5em 1.75em;
-  background-color: aqua;
-  color: black;
-  transition: all 0.3s ease-in-out;
-  cursor: pointer;
-}
-
-#homeBtn {
-  width: 30%;
-  padding: 0.5em 1.75em;
-  background-color: black;
-  color: aqua;
-  transition: all 0.3s ease-in-out;
-  cursor: pointer;
-}
-
-#settingsBtn:hover,
-#createTableBtn:hover {
-  background-color: black;
-  color: aqua;
-}
-
-#homeBtn:hover {
-  background-color: aqua;
-  color: black;
-}
-
-/* Custom styling for the form inputs */
-#table {
-  width: 100%;
-  padding: 10px;
-  border: 1px solid #ccc;
-  border-radius: 5px;
-  margin-bottom: 10px;
-  box-sizing: border-box;
-  /* Ensure padding and border are included in the width */
-}
-
-#jsonString {
-  width: 100%;
-  padding: 10px;
-  border: 1px solid #ccc;
-  border-radius: 5px;
-  resize: vertical;
-  /* Allow vertical resizing of textarea */
-  box-sizing: border-box;
-  /* Ensure padding and border are included in the width */
-}
-
-/* Optional: Add hover effect to the input fields */
-#table:hover,
-#jsonString:hover {
-  border-color: #999;
 }

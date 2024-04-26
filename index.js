@@ -1,11 +1,15 @@
 require('dotenv').config();
 const express = require('express');
+const cors = require('cors');
 const mysql = require('mysql2/promise');
 const mqtt = require('mqtt');
 
 const topicsConfig = {
   'VivusDigester003/Ecu': 'vivus03',
   'Poursalidis/Ecu': 'SSAKIS',
+  'VivusTHDigester004/Ecu': 'VIVUSTHERMO',
+  'data/tsiap01': 'TSIAPANOU',
+  'ICR2431/Ch0': 'KARANIS',
 };
 
 // Assuming this is at the top level of your index.js
@@ -50,18 +54,94 @@ let lastMessages = {};
 // Function to insert data into the database using a new connection pool
 async function insertData(topic, message) {
   const table = topicsConfig[topic];
-  const data = JSON.parse(message.toString());
-  let sql = `INSERT INTO \`${table}\` SET ?`;
-  let dataObj = { Topic: topic };
-  data.d.forEach((item) => {
-    dataObj[item.tag] = item.value;
-  });
-  dataObj.timestamp = new Date(data.ts)
-    .toISOString()
-    .slice(0, 19)
-    .replace('T', ' ');
 
+  if (topic === 'ICR2431/Ch0') {
+    // Handle the new format (ICR2431/Ch0) in a separate function
+    await handleNewFormatData(message, table);
+  } else {
+    // Existing logic for handling the old format messages
+    const data = JSON.parse(message.toString());
+    let sql = `INSERT INTO \`${table}\` SET ?`;
+    let dataObj = { Topic: topic };
+
+    // Filter out values starting with "OFFSET_"
+    data.d.forEach((item) => {
+      if (!item.tag.startsWith('OFFSET_')) {
+        dataObj[item.tag] = item.value;
+      }
+    });
+
+    dataObj.timestamp = new Date(data.ts)
+      .toISOString()
+      .slice(0, 19)
+      .replace('T', ' ');
+
+    try {
+      const pool = mysql.createPool({
+        host: process.env.DB_HOST,
+        user: process.env.DB_USER,
+        password: process.env.DB_PASSWORD,
+        database: process.env.DB_NAME,
+        waitForConnections: true,
+        connectionLimit: 10,
+        queueLimit: 0,
+      });
+      const connection = await pool.getConnection();
+      await connection.query(sql, dataObj);
+      console.log('Data successfully inserted into the database (old format)');
+      connection.release();
+    } catch (error) {
+      console.error(
+        'Failed to insert data into the database (old format):',
+        error
+      );
+    }
+  }
+}
+
+// Function to handle the new JSON format (ICR2431/Ch0)
+async function handleNewFormatData(message, table) {
   try {
+    const data = JSON.parse(message.toString());
+    let timestamp;
+
+    if (data.hasOwnProperty('ts')) {
+      // Existing format with timezone (ts: "2024-04-19T00:24:39+0300")
+      timestamp = data.ts;
+    } else if (data.hasOwnProperty('time')) {
+      // New format without timezone (time: "2024-04-19 00:23:58.031")
+      // Parse the string and adjust based on your needs
+      const timeParts = data.time.split(' ');
+      const dateString = timeParts[0];
+      const timeString = timeParts[1] || '00:00:00'; // Handle missing time
+      timestamp = `${dateString}T${timeString}`; // Assuming format YYYY-MM-DDTHH:mm:ss
+    } else {
+      throw new Error('Missing timestamp field in new format JSON');
+    }
+
+    const value = parseFloat(data.value); // Convert value to a number
+    const SH = 6;
+    const TL = 4;
+    const SL = 0;
+    const TH = 20;
+
+    // Calculate b2
+    const b2 = (SH * TL - SL * TH) / (SH - SL);
+
+    // Calculate a2
+    const a2 = (TH - b2) / SH;
+
+    // Calculate value to be inserted
+    const valueToBeInserted = Math.round((SH - (value - b2) / a2) * 100) / 100;
+
+    const insertData = {
+      topic: data.topic, // Assuming "topic" field exists for ICR2431/Ch0
+      timestamp: timestamp, // Assuming "time" field holds the timestamp
+      value: valueToBeInserted,
+    };
+
+    let sql = `INSERT INTO \`${table}\` SET ?`;
+
     const pool = mysql.createPool({
       host: process.env.DB_HOST,
       user: process.env.DB_USER,
@@ -72,11 +152,14 @@ async function insertData(topic, message) {
       queueLimit: 0,
     });
     const connection = await pool.getConnection();
-    await connection.query(sql, dataObj);
-    console.log('Data successfully inserted into the database');
+    await connection.query(sql, insertData);
+    console.log('Data successfully inserted into the database (new format)');
     connection.release();
   } catch (error) {
-    console.error('Failed to insert data into the database:', error);
+    console.error(
+      'Failed to insert data into the database (new format):',
+      error
+    );
   }
 }
 
@@ -88,7 +171,7 @@ function calculateNextInsertTime(lastInsertTime) {
 function updateStats(topic, message) {
   if (statsPerTopic[topic]) {
     statsPerTopic[topic].messageCount += 1;
-    // additional logic...
+    statsPerTopic[topic].lastMessageTime = Date.now(); // Update the last message timestamp
   } else {
     console.error(`No stats entry found for topic: ${topic}`);
   }
@@ -100,7 +183,7 @@ client.on('message', (receivedTopic, message) => {
     lastMessages[receivedTopic] = message; // Store the most recent message
     if (statsPerTopic[receivedTopic]) {
       statsPerTopic[receivedTopic].messageCount += 1;
-      // Additional logic as needed
+      statsPerTopic[receivedTopic].lastMessageTime = Date.now(); // Update the last message time
     } else {
       console.error(`No stats entry found for topic: ${receivedTopic}`);
     }
@@ -125,6 +208,26 @@ setInterval(() => {
   });
 }, 30 * 60 * 1000); // 30 minutes
 
+// Define a different threshold for considering a topic as inactive
+const INACTIVITY_THRESHOLD = 5 * 60 * 1000; // e.g., 5 minutes
+
+// Interval for checking inactivity
+setInterval(() => {
+  const currentTime = Date.now();
+  Object.keys(statsPerTopic).forEach((topic) => {
+    if (
+      currentTime - statsPerTopic[topic].lastMessageTime >
+      INACTIVITY_THRESHOLD
+    ) {
+      // Mark the topic as inactive
+      statsPerTopic[topic].active = false;
+    } else {
+      // Ensure the topic is marked as active
+      statsPerTopic[topic].active = true;
+    }
+  });
+}, INACTIVITY_THRESHOLD);
+
 // Set up Express.js server
 const app = express();
 
@@ -135,20 +238,26 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname + '/index.html'));
 });
 
+app.use(cors());
+
 app.get('/data', (req, res) => {
-  const currentTime = new Date();
+  const currentTime = new Date().getTime(); // Get the current time in milliseconds
   const preparedData = Object.keys(topicsConfig).map((topic) => {
-    const nextInsertTime = calculateNextInsertTime(
-      statsPerTopic[topic].lastInsertTime
-    );
+    const stats = statsPerTopic[topic];
+    const nextInsertTime = calculateNextInsertTime(stats.lastInsertTime);
     const timeRemaining = nextInsertTime - currentTime; // Time remaining in milliseconds
+    const active = currentTime - stats.lastMessageTime <= INACTIVITY_THRESHOLD; // Check if the topic is active
+    console.log(
+      `Topic: ${topic}, Last Message: ${stats.lastMessageTime}, Current Time: ${currentTime}, Active: ${active}`
+    );
 
     return {
       topic: topic,
       tableName: topicsConfig[topic],
-      messageCount: statsPerTopic[topic].messageCount,
-      dbInsertCount: statsPerTopic[topic].dbInsertCount,
-      timeRemaining: timeRemaining, // Send the remaining time in milliseconds
+      messageCount: stats.messageCount,
+      dbInsertCount: stats.dbInsertCount,
+      timeRemaining: timeRemaining,
+      active: active, // Include the active status
     };
   });
 
