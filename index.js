@@ -122,7 +122,7 @@ async function handleNewFormatData(message, table) {
     const value = parseFloat(data.value); // Convert value to a number
     const SH = 6;
     const TL = 4;
-    const SL = 0;
+    const SL = 0.25;
     const TH = 20;
 
     // Calculate b2
