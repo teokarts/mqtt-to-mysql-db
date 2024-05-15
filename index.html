@@ -9,6 +9,16 @@
   </head>
 
   <body>
+    <div class="container py-2 mb-1">
+      <div class="row d-flex top-bar align-items-center">
+        <div class="col"><h2>Database Storage Monitoring</h2></div>
+        <div class="col text-end">
+          <p class="info">Server Uptime: <span id="server-time"></span></p>
+          <p class="info">Database Size: <span id="db-size"></span> MB</p>
+        </div>
+      </div>
+    </div>
+
     <div id="panels" class="container panels-container">
       <!-- Pane for Topic 1 -->
       <div class="row g-5">
@@ -140,7 +150,7 @@
       }
 
       function fetchData() {
-        // fetch('http://192.168.3.233:8080/data')
+        // fetch('http://34.154.173.7:8080/data')
         fetch('/data')
           .then((response) => response.json())
           .then((data) => {
@@ -161,9 +171,51 @@
             }
           })
           .catch((error) => console.error('Fetch error:', error));
+
+        // fetch('http://34.154.173.7:8080/uptime')
+        // fetch('/uptime')
+        //   .then((response) => response.json())
+        //   .then((data) => {
+        //     const serverTimeSpan = document.getElementById('server-time');
+        //     serverTimeSpan.textContent = data.uptime;
+        //   })
+        //   .catch((error) => console.error('Fetch server uptime error:', error));
       }
 
       setInterval(fetchData, 5000);
+    </script>
+
+    <script>
+      function updateServerTime() {
+        // fetch('http://34.154.173.7:8080/uptime')
+        fetch('/uptime')
+          .then((response) => response.json())
+          .then((data) => {
+            const serverTimeSpan = document.getElementById('server-time');
+            serverTimeSpan.textContent = data.uptime;
+          })
+          .catch((error) => console.error('Fetch server uptime error:', error));
+      }
+      updateServerTime();
+      setInterval(updateServerTime, 1000);
+    </script>
+
+    <script>
+      function fetchDatabaseSize() {
+        fetch('/database-size')
+          .then((response) => response.json())
+          .then((data) => {
+            const dbSizeSpan = document.getElementById('db-size');
+            dbSizeSpan.textContent = data.databaseSize;
+          })
+          .catch((error) =>
+            console.error('Failed to fetch database size:', error)
+          );
+      }
+
+      fetchDatabaseSize();
+      // Fetch database size every 1 hour
+      setInterval(fetchDatabaseSize, 60 * 60 * 1000);
     </script>
   </body>
 </html>

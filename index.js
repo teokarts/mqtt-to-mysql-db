@@ -240,6 +240,60 @@ app.get('/', (req, res) => {
 
 app.use(cors());
 
+// Add the MySQL connection pool definition at the top level
+const pool = mysql.createPool({
+  host: process.env.DB_HOST,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME,
+  waitForConnections: true,
+  connectionLimit: 10,
+  queueLimit: 0,
+});
+
+// Define the function to format uptime
+function formatUptime(uptimeInSeconds) {
+  const days = Math.floor(uptimeInSeconds / (24 * 3600));
+  const hours = Math.floor((uptimeInSeconds % (24 * 3600)) / 3600);
+  const minutes = Math.floor((uptimeInSeconds % 3600) / 60);
+  const seconds = uptimeInSeconds % 60;
+  return `${days} days ${hours} hours ${minutes} minutes ${seconds} seconds`;
+}
+
+// Add a new endpoint to fetch server uptime
+app.get('/uptime', async (req, res) => {
+  try {
+    const [rows, fields] = await pool.query(
+      "SELECT TIME_FORMAT(SEC_TO_TIME(variable_value), '%H:%i:%s') AS Uptime FROM performance_schema.global_status WHERE variable_name='Uptime'"
+    );
+    const uptimeInSeconds = parseInt(
+      rows[0].Uptime.split(':').reduce((acc, time) => 60 * acc + +time, 0)
+    );
+    const formattedUptime = formatUptime(uptimeInSeconds);
+    res.json({ uptime: formattedUptime });
+  } catch (error) {
+    console.error('Failed to fetch server uptime:', error);
+    res.status(500).json({ error: 'Failed to fetch server uptime' });
+  }
+});
+
+app.get('/database-size', async (req, res) => {
+  try {
+    const [rows, fields] = await pool.query(
+      "SELECT ROUND(SUM((DATA_LENGTH + INDEX_LENGTH)) / 1024 / 1024, 2) AS DATABASE_SIZE_MB FROM information_schema.TABLES WHERE TABLE_SCHEMA = 'mqtt'"
+    );
+
+    // Extract the database size from the result
+    const databaseSize = rows[0].DATABASE_SIZE_MB;
+
+    // Send the database size to the client
+    res.json({ databaseSize });
+  } catch (error) {
+    console.error('Failed to fetch database size:', error);
+    res.status(500).json({ error: 'Failed to fetch database size' });
+  }
+});
+
 app.get('/data', (req, res) => {
   const currentTime = new Date().getTime(); // Get the current time in milliseconds
   const preparedData = Object.keys(topicsConfig).map((topic) => {
