@@ -77,3 +77,12 @@ h1 {
   font-weight: 700;
   text-align: center;
 }
+
+.top-bar {
+  border-bottom: 2px solid lightcoral;
+  flex-direction: row;
+}
+
+.info {
+  margin-bottom: 5px;
+}
