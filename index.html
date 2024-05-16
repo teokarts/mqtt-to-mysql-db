@@ -127,7 +127,10 @@
         </div>
       </div>
     </div>
-
+    <div id="table-info" class="container">
+      <h2 class="table-header mb-3">Database Table Information</h2>
+      <div id="table-info-content"></div>
+    </div>
     <script>
       function updatePane(paneId, data) {
         const pane = document.getElementById(paneId);
@@ -171,15 +174,6 @@
             }
           })
           .catch((error) => console.error('Fetch error:', error));
-
-        // fetch('http://34.154.173.7:8080/uptime')
-        // fetch('/uptime')
-        //   .then((response) => response.json())
-        //   .then((data) => {
-        //     const serverTimeSpan = document.getElementById('server-time');
-        //     serverTimeSpan.textContent = data.uptime;
-        //   })
-        //   .catch((error) => console.error('Fetch server uptime error:', error));
       }
 
       setInterval(fetchData, 5000);
@@ -202,6 +196,7 @@
 
     <script>
       function fetchDatabaseSize() {
+        // fetch('http://34.154.173.7:8080/database-size')
         fetch('/database-size')
           .then((response) => response.json())
           .then((data) => {
@@ -216,6 +211,66 @@
       fetchDatabaseSize();
       // Fetch database size every 1 hour
       setInterval(fetchDatabaseSize, 60 * 60 * 1000);
+    </script>
+    <script>
+      function fetchTableInfo() {
+        // fetch('http://34.154.173.7:8080/table-info')
+        fetch('/table-info')
+          .then((response) => response.json())
+          .then((data) => {
+            console.log('Received table info:', data); // Log the received data
+            if (data.tableInfo && data.tableInfo.length > 0) {
+              const tableInfoContent =
+                document.getElementById('table-info-content');
+              tableInfoContent.innerHTML = ''; // Clear previous content
+
+              const tableInfoTable = document.createElement('table');
+              tableInfoTable.classList.add(
+                'table',
+                'table-striped',
+                'table-dark'
+              );
+              const tableHeader = document.createElement('thead');
+              tableHeader.innerHTML = `
+            <tr>
+              <th>Table Name</th>
+              <th>Estimated Rows</th>
+              <th>Exact Rows</th>
+              <th>Table Size (MB)</th>
+            </tr>
+          `;
+              tableInfoTable.appendChild(tableHeader);
+
+              const tableInfoBody = document.createElement('tbody');
+              // Iterate through the first element of the tableInfo array (actual table data)
+              data.tableInfo[0].forEach((tableData) => {
+                // Create a new row for each set of table data
+                const row = document.createElement('tr');
+
+                // Iterate through the keys of each tableData object
+                Object.keys(tableData).forEach((key) => {
+                  // Create a new cell for each value and append it to the row
+                  const cell = document.createElement('td');
+                  cell.textContent = tableData[key];
+                  row.appendChild(cell);
+                });
+
+                // Append the row to the table body
+                tableInfoBody.appendChild(row);
+              });
+
+              tableInfoTable.appendChild(tableInfoBody);
+
+              tableInfoContent.appendChild(tableInfoTable);
+            } else {
+              console.log('No table info received or empty array'); // Log if no data or empty array
+            }
+          })
+          .catch((error) => console.error('Fetch table info error:', error));
+      }
+
+      fetchTableInfo();
+      setInterval(fetchTableInfo, 60 * 60 * 1000);
     </script>
   </body>
 </html>

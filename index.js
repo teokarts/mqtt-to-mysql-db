@@ -318,6 +318,16 @@ app.get('/data', (req, res) => {
   res.json({ stats: preparedData });
 });
 
+app.get('/table-info', async (req, res) => {
+  try {
+    const [rows, fields] = await pool.query('CALL GetTableInfo()');
+    res.json({ tableInfo: rows });
+  } catch (error) {
+    console.error('Failed to fetch table info:', error);
+    res.status(500).json({ error: 'Failed to fetch table info' });
+  }
+});
+
 app.listen(8080, () => {
   console.log('Server is running on port 8080');
 });

@@ -86,3 +86,9 @@ h1 {
 .info {
   margin-bottom: 5px;
 }
+
+.table-header {
+  display: block;
+  border-bottom: 2px solid lightcoral;
+  line-height: 1.8em;
+}
