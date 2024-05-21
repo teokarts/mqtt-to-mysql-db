@@ -13,7 +13,8 @@
       <div class="row d-flex top-bar align-items-center">
         <div class="col"><h2>Database Storage Monitoring</h2></div>
         <div class="col text-end">
-          <p class="info">Server Uptime: <span id="server-time"></span></p>
+          <p class="info">Database Uptime: <span id="server-time"></span></p>
+          <p class="info">Server Uptime: <span id="node-uptime"></span></p>
           <p class="info">Database Size: <span id="db-size"></span> MB</p>
         </div>
       </div>
@@ -129,6 +130,7 @@
     </div>
     <div id="table-info" class="container">
       <h2 class="table-header mb-3">Database Table Information</h2>
+      <p class="info">Updated: <span id="db-update"></span> MB</p>
       <div id="table-info-content"></div>
     </div>
     <script>
@@ -192,6 +194,20 @@
       }
       updateServerTime();
       setInterval(updateServerTime, 1000);
+
+      function updateNodeUptime() {
+        // fetch('http://34.154.173.7:8080/node-uptime')
+        fetch('/node-uptime')
+          .then((response) => response.json())
+          .then((data) => {
+            const nodeUptimeSpan = document.getElementById('node-uptime');
+            nodeUptimeSpan.textContent = data.uptime;
+          })
+          .catch((error) => console.error('Fetch node uptime error:', error));
+      }
+
+      updateNodeUptime();
+      setInterval(updateNodeUptime, 1000);
     </script>
 
     <script>

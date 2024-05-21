@@ -122,7 +122,7 @@ async function handleNewFormatData(message, table) {
     const value = parseFloat(data.value); // Convert value to a number
     const SH = 6;
     const TL = 4;
-    const SL = 0.25;
+    const SL = 0;
     const TH = 20;
 
     // Calculate b2
@@ -138,6 +138,7 @@ async function handleNewFormatData(message, table) {
       topic: data.topic, // Assuming "topic" field exists for ICR2431/Ch0
       timestamp: timestamp, // Assuming "time" field holds the timestamp
       value: valueToBeInserted,
+      transmitter_value: data.value,
     };
 
     let sql = `INSERT INTO \`${table}\` SET ?`;
@@ -256,7 +257,7 @@ function formatUptime(uptimeInSeconds) {
   const days = Math.floor(uptimeInSeconds / (24 * 3600));
   const hours = Math.floor((uptimeInSeconds % (24 * 3600)) / 3600);
   const minutes = Math.floor((uptimeInSeconds % 3600) / 60);
-  const seconds = uptimeInSeconds % 60;
+  const seconds = Math.floor(uptimeInSeconds % 60);
   return `${days} days ${hours} hours ${minutes} minutes ${seconds} seconds`;
 }
 
@@ -275,6 +276,13 @@ app.get('/uptime', async (req, res) => {
     console.error('Failed to fetch server uptime:', error);
     res.status(500).json({ error: 'Failed to fetch server uptime' });
   }
+});
+
+// Add the uptime endpoint
+app.get('/node-uptime', (req, res) => {
+  const uptimeInSeconds = process.uptime();
+  const formattedNodeUptime = formatUptime(uptimeInSeconds);
+  res.json({ uptime: formattedNodeUptime });
 });
 
 app.get('/database-size', async (req, res) => {
