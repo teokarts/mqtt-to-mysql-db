@@ -10,6 +10,7 @@ const topicsConfig = {
   'VivusTHDigester004/Ecu': 'VIVUSTHERMO',
   'data/tsiap01': 'TSIAPANOU',
   'ICR2431/Ch0': 'KARANIS',
+  'sala01/data': 'SALASIDIS', // Add this line
 };
 
 // Assuming this is at the top level of your index.js
@@ -58,6 +59,8 @@ async function insertData(topic, message) {
   if (topic === 'ICR2431/Ch0') {
     // Handle the new format (ICR2431/Ch0) in a separate function
     await handleNewFormatData(message, table);
+  } else if (topic === 'sala01/data') {
+    await handleSalasidisData(message, table, topic);
   } else {
     // Existing logic for handling the old format messages
     const data = JSON.parse(message.toString());
@@ -164,6 +167,63 @@ async function handleNewFormatData(message, table) {
   }
 }
 
+async function handleSalasidisData(message, table, topic) {
+  try {
+    const data = JSON.parse(message.toString());
+    if (data.length === 0) return;
+
+    const values = {};
+    data.forEach((item) => {
+      // Convert string values to numbers, but keep strings for non-numeric values
+      values[item.name] = isNaN(parseFloat(item.value))
+        ? item.value
+        : parseFloat(item.value);
+    });
+
+    // Use current server time as timestamp
+    const timestamp = new Date().toISOString().slice(0, 19).replace('T', ' ');
+
+    const insertData = {
+      timestamp: timestamp,
+      topic: topic, // Add the topic to the insertData object
+      ...values,
+    };
+
+    // Generate the SQL query dynamically based on the received fields
+    const fields = Object.keys(insertData).join(', ');
+    const placeholders = Object.keys(insertData)
+      .map(() => '?')
+      .join(', ');
+    const sql = `INSERT INTO \`${table}\` (${fields}) VALUES (${placeholders})`;
+
+    const pool = mysql.createPool({
+      host: process.env.DB_HOST,
+      user: process.env.DB_USER,
+      password: process.env.DB_PASSWORD,
+      database: process.env.DB_NAME,
+      waitForConnections: true,
+      connectionLimit: 10,
+      queueLimit: 0,
+    });
+
+    const connection = await pool.getConnection();
+    await connection.query(sql, Object.values(insertData));
+    console.log(
+      'Data successfully inserted into the database (Salasidis format)'
+    );
+    connection.release();
+  } catch (error) {
+    console.error(
+      'Failed to insert data into the database (Salasidis format):',
+      error
+    );
+    console.error('Error details:', error.message);
+    if (error.sql) {
+      console.error('SQL query:', error.sql);
+    }
+  }
+}
+
 function calculateNextInsertTime(lastInsertTime) {
   return new Date(lastInsertTime + 30 * 60 * 1000).toISOString();
 }
@@ -252,7 +312,6 @@ const pool = mysql.createPool({
   queueLimit: 0,
 });
 
-// Define the function to format uptime
 function formatUptime(uptimeInSeconds) {
   const days = Math.floor(uptimeInSeconds / (24 * 3600));
   const hours = Math.floor((uptimeInSeconds % (24 * 3600)) / 3600);
@@ -261,15 +320,12 @@ function formatUptime(uptimeInSeconds) {
   return `${days} days ${hours} hours ${minutes} minutes ${seconds} seconds`;
 }
 
-// Add a new endpoint to fetch server uptime
 app.get('/uptime', async (req, res) => {
   try {
     const [rows, fields] = await pool.query(
-      "SELECT TIME_FORMAT(SEC_TO_TIME(variable_value), '%H:%i:%s') AS Uptime FROM performance_schema.global_status WHERE variable_name='Uptime'"
+      "SELECT variable_value AS uptime_seconds FROM performance_schema.global_status WHERE variable_name='Uptime'"
     );
-    const uptimeInSeconds = parseInt(
-      rows[0].Uptime.split(':').reduce((acc, time) => 60 * acc + +time, 0)
-    );
+    const uptimeInSeconds = parseInt(rows[0].uptime_seconds, 10);
     const formattedUptime = formatUptime(uptimeInSeconds);
     res.json({ uptime: formattedUptime });
   } catch (error) {
@@ -278,6 +334,13 @@ app.get('/uptime', async (req, res) => {
   }
 });
 
+function formatUptime(uptimeInSeconds) {
+  const days = Math.floor(uptimeInSeconds / (24 * 3600));
+  const hours = Math.floor((uptimeInSeconds % (24 * 3600)) / 3600);
+  const minutes = Math.floor((uptimeInSeconds % 3600) / 60);
+  const seconds = Math.floor(uptimeInSeconds % 60);
+  return `${days} days ${hours} hours ${minutes} minutes ${seconds} seconds`;
+}
 // Add the uptime endpoint
 app.get('/node-uptime', (req, res) => {
   const uptimeInSeconds = process.uptime();

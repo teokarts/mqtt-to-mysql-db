@@ -126,6 +126,26 @@
             </div>
           </div>
         </div>
+        <div class="col-md-4">
+          <div class="panel" id="panel6">
+            <h2>Topic<br /><span>sala01/data</span></h2>
+            <div class="info-box">
+              <p>DB Table: <span class="tableName">Loading...</span></p>
+              <p>
+                Messages received:
+                <span class="messages">Loading...</span>
+              </p>
+              <p>
+                Messages stored:
+                <span class="dbInserts">Loading...</span>
+              </p>
+              <p>
+                Next insert in:
+                <span class="timer">Loading...</span>
+              </p>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
     <div id="table-info" class="container">
@@ -170,6 +190,8 @@
                   updatePane('panel4', stat);
                 } else if (stat.topic === 'ICR2431/Ch0') {
                   updatePane('panel5', stat);
+                } else if (stat.topic === 'sala01/data') {
+                  updatePane('panel6', stat);
                 }
               });
             }
@@ -182,8 +204,8 @@
 
     <script>
       function updateServerTime() {
-        // fetch('http://34.154.173.7:8080/uptime')
         fetch('/uptime')
+          // fetch('http://34.154.173.7:8080/uptime')
           .then((response) => response.json())
           .then((data) => {
             const serverTimeSpan = document.getElementById('server-time');
@@ -191,12 +213,13 @@
           })
           .catch((error) => console.error('Fetch server uptime error:', error));
       }
+
       updateServerTime();
-      setInterval(updateServerTime, 1000);
+      setInterval(updateServerTime, 1000); // Update every second
 
       function updateNodeUptime() {
-        // fetch('http://34.154.173.7:8080/node-uptime')
         fetch('/node-uptime')
+          // fetch('http://34.154.173.7:8080/node-uptime')
           .then((response) => response.json())
           .then((data) => {
             const nodeUptimeSpan = document.getElementById('node-uptime');
@@ -206,7 +229,7 @@
       }
 
       updateNodeUptime();
-      setInterval(updateNodeUptime, 1000);
+      setInterval(updateNodeUptime, 1000); // Update every second
     </script>
 
     <script>
