@@ -3,6 +3,7 @@ const express = require('express');
 const cors = require('cors');
 const mysql = require('mysql2/promise');
 const mqtt = require('mqtt');
+const util = require('util');
 
 const topicsConfig = {
   'VivusDigester003/Ecu': 'vivus03',
@@ -10,7 +11,7 @@ const topicsConfig = {
   'VivusTHDigester004/Ecu': 'VIVUSTHERMO',
   'data/tsiap01': 'TSIAPANOU',
   'ICR2431/Ch0': 'KARANIS',
-  'sala01/data': 'SALASIDIS', // Add this line
+  'sala01/data': 'SALASIDIS',
 };
 
 // Assuming this is at the top level of your index.js
@@ -174,18 +175,16 @@ async function handleSalasidisData(message, table, topic) {
 
     const values = {};
     data.forEach((item) => {
-      // Convert string values to numbers, but keep strings for non-numeric values
       values[item.name] = isNaN(parseFloat(item.value))
         ? item.value
         : parseFloat(item.value);
     });
 
-    // Use current server time as timestamp
     const timestamp = new Date().toISOString().slice(0, 19).replace('T', ' ');
 
     const insertData = {
       timestamp: timestamp,
-      topic: topic, // Add the topic to the insertData object
+      topic: topic,
       ...values,
     };
 
@@ -211,6 +210,21 @@ async function handleSalasidisData(message, table, topic) {
     console.log(
       'Data successfully inserted into the database (Salasidis format)'
     );
+
+    // New code for SALALARMS table
+    if (values.LatestFault && values.LatestFault !== 0) {
+      const checkSql =
+        'SELECT LatestFault FROM SALALARMS ORDER BY id DESC LIMIT 1';
+      const [rows] = await connection.query(checkSql);
+
+      if (rows.length === 0 || rows[0].LatestFault !== values.LatestFault) {
+        const insertAlarmSql =
+          'INSERT INTO SALALARMS (timestamp, LatestFault) VALUES (?, ?)';
+        await connection.query(insertAlarmSql, [timestamp, values.LatestFault]);
+        console.log('New alarm inserted into SALALARMS table');
+      }
+    }
+
     connection.release();
   } catch (error) {
     console.error(
@@ -223,7 +237,6 @@ async function handleSalasidisData(message, table, topic) {
     }
   }
 }
-
 function calculateNextInsertTime(lastInsertTime) {
   return new Date(lastInsertTime + 30 * 60 * 1000).toISOString();
 }
