@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>Monitoring Page</title>
+    <title>SQL Database Monitoring Page</title>
     <link
       href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css"
       rel="stylesheet" />
@@ -146,6 +146,20 @@
             </div>
           </div>
         </div>
+        <div class="col-md-4">
+          <div id="panel7" class="panel">
+            <h2>
+              Topic<br />
+              <span>AirBlock001/data</span>
+            </h2>
+            <div class="info-box">
+              DB Table: <span class="tableName">Loading...</span><br />
+              Messages received: <span class="messages">Loading...</span><br />
+              Messages stored: <span class="dbInserts">Loading...</span><br />
+              Next insert in: <span class="timer">Loading...</span>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
     <div id="table-info" class="container">
@@ -192,6 +206,8 @@
                   updatePane('panel5', stat);
                 } else if (stat.topic === 'sala01/data') {
                   updatePane('panel6', stat);
+                } else if (stat.topic === 'AirBlock001/data') {
+                  updatePane('panel7', stat);
                 }
               });
             }
@@ -205,7 +221,7 @@
     <script>
       function updateServerTime() {
         fetch('/uptime')
-          // fetch('http://34.154.173.7:8080/uptime')
+          // fetch('http://34.154.71.209:8080/uptime')
           .then((response) => response.json())
           .then((data) => {
             const serverTimeSpan = document.getElementById('server-time');
@@ -219,7 +235,7 @@
 
       function updateNodeUptime() {
         fetch('/node-uptime')
-          // fetch('http://34.154.173.7:8080/node-uptime')
+          // fetch('http://34.154.71.209:8080/node-uptime')
           .then((response) => response.json())
           .then((data) => {
             const nodeUptimeSpan = document.getElementById('node-uptime');
@@ -234,7 +250,7 @@
 
     <script>
       function fetchDatabaseSize() {
-        // fetch('http://34.154.173.7:8080/database-size')
+        // fetch('http://34.154.71.209:8080/database-size')
         fetch('/database-size')
           .then((response) => response.json())
           .then((data) => {
@@ -252,7 +268,7 @@
     </script>
     <script>
       function fetchTableInfo() {
-        // fetch('http://34.154.173.7:8080/table-info')
+        // fetch('http://34.154.71.209:8080/table-info')
         fetch('/table-info')
           .then((response) => response.json())
           .then((data) => {

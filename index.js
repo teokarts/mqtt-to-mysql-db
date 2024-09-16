@@ -12,6 +12,7 @@ const topicsConfig = {
   'data/tsiap01': 'TSIAPANOU',
   'ICR2431/Ch0': 'KARANIS',
   'sala01/data': 'SALASIDIS',
+  'AirBlock001/data': 'AIRBLOCKDEMO',
 };
 
 // Assuming this is at the top level of your index.js
@@ -20,6 +21,8 @@ let statsPerTopic = Object.keys(topicsConfig).reduce((acc, topic) => {
     messageCount: 0,
     dbInsertCount: 0,
     lastInsertTime: Date.now(),
+    lastMessageTime: Date.now(),
+    active: false,
   };
   return acc;
 }, {});
@@ -62,6 +65,8 @@ async function insertData(topic, message) {
     await handleNewFormatData(message, table);
   } else if (topic === 'sala01/data') {
     await handleSalasidisData(message, table, topic);
+  } else if (topic === 'AirBlock001/data') {
+    await handleAirBlockData(message, table, topic);
   } else {
     // Existing logic for handling the old format messages
     const data = JSON.parse(message.toString());
@@ -237,6 +242,83 @@ async function handleSalasidisData(message, table, topic) {
     }
   }
 }
+
+async function handleAirBlockData(message, table, topic) {
+  try {
+    console.log('Received message:', message.toString());
+    const data = JSON.parse(message.toString());
+    console.log('Parsed data:', data);
+
+    const timestamp = new Date().toISOString().slice(0, 19).replace('T', ' ');
+
+    const insertData = {
+      topic: topic,
+      timestamp: timestamp,
+    };
+
+    console.log('Airblock001Data:', data.Airblock001Data);
+
+    // Parse the Airblock001Data string into an object
+    const airblockDataString = data.Airblock001Data;
+    const regex = /Name:\s*([^,]+)\s*,\s*value:\s*\[([^\]]+)\]/g;
+    let match;
+
+    while ((match = regex.exec(airblockDataString)) !== null) {
+      const key = match[1].trim();
+      const value = match[2].trim();
+
+      console.log('Extracted key:', key, 'Value:', value);
+
+      const numericValue = parseFloat(value);
+
+      if (!isNaN(numericValue)) {
+        insertData[key] = numericValue;
+        console.log(`Added to insertData: ${key} = ${numericValue}`);
+      } else {
+        console.log(`Skipped invalid numeric value for ${key}`);
+      }
+    }
+
+    console.log('Final insertData object:', insertData);
+
+    // Generate the SQL query dynamically based on the received fields
+    const fields = Object.keys(insertData).join(', ');
+    const placeholders = Object.keys(insertData)
+      .map(() => '?')
+      .join(', ');
+    const sql = `INSERT INTO \`${table}\` (${fields}) VALUES (${placeholders})`;
+
+    console.log('SQL query:', sql);
+    console.log('SQL values:', Object.values(insertData));
+
+    const pool = mysql.createPool({
+      host: process.env.DB_HOST,
+      user: process.env.DB_USER,
+      password: process.env.DB_PASSWORD,
+      database: process.env.DB_NAME,
+      waitForConnections: true,
+      connectionLimit: 10,
+      queueLimit: 0,
+    });
+
+    const connection = await pool.getConnection();
+    const [result] = await connection.query(sql, Object.values(insertData));
+    console.log('Query result:', result);
+    console.log(
+      'Data successfully inserted into the database (AirBlock format)'
+    );
+    connection.release();
+  } catch (error) {
+    console.error(
+      'Failed to insert data into the database (AirBlock format):',
+      error
+    );
+    console.error('Error details:', error.message);
+    if (error.sql) {
+      console.error('SQL query:', error.sql);
+    }
+  }
+}
 function calculateNextInsertTime(lastInsertTime) {
   return new Date(lastInsertTime + 30 * 60 * 1000).toISOString();
 }
@@ -252,8 +334,8 @@ function updateStats(topic, message) {
 }
 
 client.on('message', (receivedTopic, message) => {
-  console.log(`Received message on ${receivedTopic}:`, message.toString());
   if (topicsConfig.hasOwnProperty(receivedTopic)) {
+    // console.log(`Received message on ${receivedTopic}:`, message.toString());
     lastMessages[receivedTopic] = message; // Store the most recent message
     if (statsPerTopic[receivedTopic]) {
       statsPerTopic[receivedTopic].messageCount += 1;
