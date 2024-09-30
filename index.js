@@ -11,7 +11,7 @@ const topicsConfig = {
   'VivusTHDigester004/Ecu': 'VIVUSTHERMO',
   'data/tsiap01': 'TSIAPANOU',
   'ICR2431/Ch0': 'KARANIS',
-  'sala01/data': 'SALASIDIS',
+  'sala001/data': 'SALASIDIS',
   'AirBlock001/data': 'AIRBLOCKDEMO',
 };
 
@@ -63,8 +63,8 @@ async function insertData(topic, message) {
   if (topic === 'ICR2431/Ch0') {
     // Handle the new format (ICR2431/Ch0) in a separate function
     await handleNewFormatData(message, table);
-  } else if (topic === 'sala01/data') {
-    await handleSalasidisData(message, table, topic);
+  } else if (topic === 'sala001/data') {
+    await handleSalasidis001Data(message, table, topic);
   } else if (topic === 'AirBlock001/data') {
     await handleAirBlockData(message, table, topic);
   } else {
@@ -173,25 +173,43 @@ async function handleNewFormatData(message, table) {
   }
 }
 
-async function handleSalasidisData(message, table, topic) {
+async function handleSalasidis001Data(message, table, topic) {
   try {
+    console.log('Received message:', message.toString());
     const data = JSON.parse(message.toString());
-    if (data.length === 0) return;
-
-    const values = {};
-    data.forEach((item) => {
-      values[item.name] = isNaN(parseFloat(item.value))
-        ? item.value
-        : parseFloat(item.value);
-    });
+    console.log('Parsed data:', data);
 
     const timestamp = new Date().toISOString().slice(0, 19).replace('T', ' ');
 
     const insertData = {
-      timestamp: timestamp,
       topic: topic,
-      ...values,
+      timestamp: timestamp,
     };
+
+    console.log('Sala001Data:', data.Sala001Data);
+
+    // Parse the Sala001Data string into an object
+    const sala001DataString = data.Sala001Data;
+    const regex = /Name:\s*([^,]+)\s*,\s*value:\s*\[([^\]]+)\]/g;
+    let match;
+
+    while ((match = regex.exec(sala001DataString)) !== null) {
+      const key = match[1].trim();
+      const value = match[2].trim();
+
+      console.log('Extracted key:', key, 'Value:', value);
+
+      const numericValue = parseFloat(value);
+
+      if (!isNaN(numericValue)) {
+        insertData[key] = numericValue;
+        console.log(`Added to insertData: ${key} = ${numericValue}`);
+      } else {
+        console.log(`Skipped invalid numeric value for ${key}`);
+      }
+    }
+
+    console.log('Final insertData object:', insertData);
 
     // Generate the SQL query dynamically based on the received fields
     const fields = Object.keys(insertData).join(', ');
@@ -199,6 +217,9 @@ async function handleSalasidisData(message, table, topic) {
       .map(() => '?')
       .join(', ');
     const sql = `INSERT INTO \`${table}\` (${fields}) VALUES (${placeholders})`;
+
+    console.log('SQL query:', sql);
+    console.log('SQL values:', Object.values(insertData));
 
     const pool = mysql.createPool({
       host: process.env.DB_HOST,
@@ -211,29 +232,30 @@ async function handleSalasidisData(message, table, topic) {
     });
 
     const connection = await pool.getConnection();
-    await connection.query(sql, Object.values(insertData));
+    const [result] = await connection.query(sql, Object.values(insertData));
+    console.log('Query result:', result);
     console.log(
-      'Data successfully inserted into the database (Salasidis format)'
+      'Data successfully inserted into the database (Sala001 format)'
     );
 
-    // New code for SALALARMS table
-    if (values.LatestFault && values.LatestFault !== 0) {
-      const checkSql =
-        'SELECT LatestFault FROM SALALARMS ORDER BY id DESC LIMIT 1';
-      const [rows] = await connection.query(checkSql);
+    // // Check and insert alarm if necessary
+    // if (insertData.LatestFault && insertData.LatestFault !== 0) {
+    //   const checkSql =
+    //     'SELECT LatestFault FROM SALALARMS ORDER BY id DESC LIMIT 1';
+    //   const [rows] = await connection.query(checkSql);
 
-      if (rows.length === 0 || rows[0].LatestFault !== values.LatestFault) {
-        const insertAlarmSql =
-          'INSERT INTO SALALARMS (timestamp, LatestFault) VALUES (?, ?)';
-        await connection.query(insertAlarmSql, [timestamp, values.LatestFault]);
-        console.log('New alarm inserted into SALALARMS table');
-      }
-    }
+    //   if (rows.length === 0 || rows[0].LatestFault !== insertData.LatestFault) {
+    //     const insertAlarmSql =
+    //       'INSERT INTO SALALARMS (timestamp, LatestFault) VALUES (?, ?)';
+    //     await connection.query(insertAlarmSql, [timestamp, insertData.LatestFault]);
+    //     console.log('New alarm inserted into SALALARMS table');
+    //   }
+    // }
 
     connection.release();
   } catch (error) {
     console.error(
-      'Failed to insert data into the database (Salasidis format):',
+      'Failed to insert data into the database (Sala001 format):',
       error
     );
     console.error('Error details:', error.message);
