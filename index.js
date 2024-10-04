@@ -173,6 +173,12 @@ async function handleNewFormatData(message, table) {
   }
 }
 
+// Add this variable at the top level of your file, outside of any function
+let lastAlarmState = {
+  operationStatus: null,
+  latestFault: null,
+};
+
 async function handleSalasidis001Data(message, table, topic) {
   try {
     console.log('Received message:', message.toString());
@@ -216,7 +222,7 @@ async function handleSalasidis001Data(message, table, topic) {
     const placeholders = Object.keys(insertData)
       .map(() => '?')
       .join(', ');
-    const sql = `INSERT INTO \`${table}\` (${fields}) VALUES (${placeholders})`;
+    const sql = `INSERT INTO \`${table}\` SET ?`;
 
     console.log('SQL query:', sql);
     console.log('SQL values:', Object.values(insertData));
@@ -232,25 +238,36 @@ async function handleSalasidis001Data(message, table, topic) {
     });
 
     const connection = await pool.getConnection();
-    const [result] = await connection.query(sql, Object.values(insertData));
+    const [result] = await connection.query(sql, insertData);
     console.log('Query result:', result);
     console.log(
       'Data successfully inserted into the database (Sala001 format)'
     );
 
-    // // Check and insert alarm if necessary
-    // if (insertData.LatestFault && insertData.LatestFault !== 0) {
-    //   const checkSql =
-    //     'SELECT LatestFault FROM SALALARMS ORDER BY id DESC LIMIT 1';
-    //   const [rows] = await connection.query(checkSql);
+    // Check and insert alarm if necessary
+    if (insertData.OperationStatus === 3) {
+      if (
+        lastAlarmState.operationStatus !== 3 ||
+        (lastAlarmState.operationStatus === 3 &&
+          lastAlarmState.latestFault !== insertData.LatestFault)
+      ) {
+        const insertAlarmSql =
+          'INSERT INTO SALALARMS (timestamp, LatestFault) VALUES (?, ?)';
+        await connection.query(insertAlarmSql, [
+          timestamp,
+          insertData.LatestFault,
+        ]);
+        console.log('New alarm inserted into SALALARMS table');
 
-    //   if (rows.length === 0 || rows[0].LatestFault !== insertData.LatestFault) {
-    //     const insertAlarmSql =
-    //       'INSERT INTO SALALARMS (timestamp, LatestFault) VALUES (?, ?)';
-    //     await connection.query(insertAlarmSql, [timestamp, insertData.LatestFault]);
-    //     console.log('New alarm inserted into SALALARMS table');
-    //   }
-    // }
+        // Update the last alarm state
+        lastAlarmState.operationStatus = insertData.OperationStatus;
+        lastAlarmState.latestFault = insertData.LatestFault;
+      }
+    } else {
+      // Reset the last alarm state if OperationStatus is not 3
+      lastAlarmState.operationStatus = insertData.OperationStatus;
+      lastAlarmState.latestFault = null;
+    }
 
     connection.release();
   } catch (error) {
