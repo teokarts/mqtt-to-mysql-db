@@ -26,8 +26,8 @@ async function handleT004009240001FRData(message, table, topic) {
     // Get current timestamp in MySQL datetime format
     const timestamp = new Date().toISOString().slice(0, 19).replace('T', ' ');
 
-    // Extract the T004009240001FR object
-    const measurements = data.T004009240001FR;
+    // Extract values from the T004009240001FR object
+    const measurements = data.T004009240001FR.split(',');
 
     // Initialize insert data with timestamp and topic
     const insertData = {
@@ -35,13 +35,15 @@ async function handleT004009240001FRData(message, table, topic) {
       topic: topic,
     };
 
-    // Add all V1-V32 values to insertData
-    for (let i = 1; i <= 32; i++) {
-      const key = `V${i}`;
-      if (measurements.hasOwnProperty(key)) {
-        insertData[key] = measurements[key];
+    // Add values for V1-V32
+    measurements.forEach((measurement) => {
+      const [key, value] = measurement.split(':');
+      const columnName = key.trim();
+      const numericValue = parseFloat(value);
+      if (!isNaN(numericValue)) {
+        insertData[columnName] = numericValue;
       }
-    }
+    });
 
     console.log('Final insertData object:', insertData);
 
@@ -71,7 +73,6 @@ async function handleT004009240001FRData(message, table, topic) {
     }
   }
 }
-
 // Assuming this is at the top level of your index.js
 let statsPerTopic = Object.keys(topicsConfig).reduce((acc, topic) => {
   acc[topic] = {
@@ -504,7 +505,7 @@ setInterval(() => {
 }, 30 * 60 * 1000); // 30 minutes
 
 // Define a different threshold for considering a topic as inactive
-const INACTIVITY_THRESHOLD = 5 * 60 * 1000; // e.g., 5 minutes
+const INACTIVITY_THRESHOLD = 2 * 60 * 1000; // 2 minutes in milliseconds
 
 // Interval for checking inactivity
 setInterval(() => {
@@ -521,7 +522,7 @@ setInterval(() => {
       statsPerTopic[topic].active = true;
     }
   });
-}, INACTIVITY_THRESHOLD);
+}, 10000);
 
 // Set up Express.js server
 const app = express();
@@ -676,10 +677,8 @@ app.get('/table-info', async (req, res) => {
           SELECT 
               table_name as 'Table Name',
               ROUND(((data_length + index_length) / 1024 / 1024), 2) AS 'Size (MB)',
-              table_rows as 'Row Count',
-              'mqtt' as 'Database',
-              CREATE_TIME as 'Created',
-              UPDATE_TIME as 'Last Updated'
+              (SELECT COUNT(*) FROM \`${process.env.DB_NAME}\`.\${table_name}) as 'Row Count',
+              'mqtt' as 'Database'
           FROM information_schema.TABLES 
           WHERE table_schema = '${process.env.DB_NAME}'
       `;
@@ -688,16 +687,49 @@ app.get('/table-info', async (req, res) => {
           SELECT 
               table_name as 'Table Name',
               ROUND(((data_length + index_length) / 1024 / 1024), 2) AS 'Size (MB)',
-              table_rows as 'Row Count',
-              'THERMO' as 'Database',
-              CREATE_TIME as 'Created',
-              UPDATE_TIME as 'Last Updated'
+              (SELECT COUNT(*) FROM THERMO.\${table_name}) as 'Row Count',
+              'THERMO' as 'Database'
           FROM information_schema.TABLES 
           WHERE table_schema = 'THERMO'
       `;
 
-    const [mqttResults] = await mqttPool.query(mqttQuery);
-    const [thermoResults] = await thermoPool.query(thermoQuery);
+    let mqttResults = [];
+    let thermoResults = [];
+
+    // Execute queries for each table individually to avoid errors
+    const [mqttTables] = await mqttPool.query(
+      `SHOW TABLES FROM ${process.env.DB_NAME}`
+    );
+    for (const tableRow of mqttTables) {
+      const tableName = tableRow[`Tables_in_${process.env.DB_NAME}`];
+      const [tableInfo] = await mqttPool.query(`
+              SELECT 
+                  '${tableName}' as 'Table Name',
+                  ROUND(((data_length + index_length) / 1024 / 1024), 2) AS 'Size (MB)',
+                  (SELECT COUNT(*) FROM \`${process.env.DB_NAME}\`.\`${tableName}\`) as 'Row Count',
+                  'mqtt' as 'Database'
+              FROM information_schema.TABLES 
+              WHERE table_schema = '${process.env.DB_NAME}'
+              AND table_name = '${tableName}'
+          `);
+      if (tableInfo[0]) mqttResults.push(tableInfo[0]);
+    }
+
+    const [thermoTables] = await thermoPool.query('SHOW TABLES FROM THERMO');
+    for (const tableRow of thermoTables) {
+      const tableName = tableRow['Tables_in_THERMO'];
+      const [tableInfo] = await thermoPool.query(`
+              SELECT 
+                  '${tableName}' as 'Table Name',
+                  ROUND(((data_length + index_length) / 1024 / 1024), 2) AS 'Size (MB)',
+                  (SELECT COUNT(*) FROM THERMO.\`${tableName}\`) as 'Row Count',
+                  'THERMO' as 'Database'
+              FROM information_schema.TABLES 
+              WHERE table_schema = 'THERMO'
+              AND table_name = '${tableName}'
+          `);
+      if (tableInfo[0]) thermoResults.push(tableInfo[0]);
+    }
 
     // Combine results
     const combinedResults = [...mqttResults, ...thermoResults];

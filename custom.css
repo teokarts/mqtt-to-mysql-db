@@ -7,20 +7,19 @@ body {
 .panels-container {
   display: flex;
   padding: 3rem 3rem;
-  
 }
 
 .panel {
-  
   padding: 1rem;
   min-width: 20rem;
-  
-  box-shadow: 10px 10px 10px rgba(0,0,0,0.5);
+  box-shadow: 10px 10px 10px rgba(0, 0, 0, 0.5);
   border-radius: 5px;
   border: 1px solid rgb(211, 211, 211, 0.5);
   background-color: #202020;
   font-size: 0.8rem;
-  /* box-shadow: 10px 10px 10px #b3b2b2; */
+  transition: background-color 0.3s ease;
+  position: relative;
+  overflow: hidden;
 }
 
 .panel h2 {
@@ -100,4 +99,28 @@ h1 {
 
 .info-box p {
   margin-bottom: 0.1rem;
+}
+
+.status {
+  color: red;
+  font-weight: bold;
+  margin-top: 10px;
+  font-size: 1.2em;
+}
+
+.stopped-banner {
+  position: absolute;
+  width: 200px;
+  top: 30px;
+  right: -50px;
+  text-align: center;
+  line-height: 30px;
+  background-color: red;
+  color: white;
+  font-weight: bold;
+  transform: rotate(45deg);
+  font-size: 16px;
+  z-index: 1;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+  display: none; /* Hidden by default */
 }

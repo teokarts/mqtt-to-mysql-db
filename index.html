@@ -178,16 +178,41 @@
             const dbInsertsEl = panel.querySelector('.dbInserts');
             const timerEl = panel.querySelector('.timer');
 
+            // Add or get status element
+            let statusEl = panel.querySelector('.status');
+            if (!statusEl) {
+              statusEl = document.createElement('p');
+              statusEl.className = 'status';
+              panel.querySelector('.info-box').appendChild(statusEl);
+            }
+
+            // Add or get banner element
+            let bannerEl = panel.querySelector('.stopped-banner');
+            if (!bannerEl) {
+              bannerEl = document.createElement('div');
+              bannerEl.className = 'stopped-banner';
+              bannerEl.textContent = 'STOPPED';
+              panel.appendChild(bannerEl);
+            }
+
             if (tableNameEl) tableNameEl.textContent = stat.tableName;
             if (messagesEl) messagesEl.textContent = stat.messageCount;
             if (dbInsertsEl) dbInsertsEl.textContent = stat.dbInsertCount;
             if (timerEl) timerEl.textContent = formatTime(stat.timeRemaining);
 
-            // Update panel active/inactive status
+            // Update status and panel appearance based on activity
             if (stat.active) {
-              panel.classList.remove('inactive');
+              statusEl.textContent = '';
+              statusEl.style.display = 'none';
+              bannerEl.style.display = 'none';
+              panel.style.backgroundColor = '#202020'; // normal background
             } else {
-              panel.classList.add('inactive');
+              //statusEl.textContent = 'STOPPED';
+              statusEl.style.display = 'block';
+              bannerEl.style.display = 'block';
+              statusEl.style.color = 'red';
+              statusEl.style.fontWeight = 'bold';
+              panel.style.backgroundColor = '#3a1717'; // darker red background
             }
           }
         });
@@ -224,9 +249,14 @@
           '<div class="table-responsive"><table class="table table-dark">';
         html += '<thead><tr>';
 
-        // Add headers based on the first row's keys
-        const headers = Object.keys(data.tableInfo[0][0]);
-        headers.forEach((header) => {
+        // Only show specific headers
+        const displayHeaders = [
+          'Table Name',
+          'Size (MB)',
+          'Row Count',
+          'Database',
+        ];
+        displayHeaders.forEach((header) => {
           html += `<th>${header}</th>`;
         });
         html += '</tr></thead><tbody>';
@@ -235,13 +265,8 @@
         data.tableInfo.forEach((dbTables) => {
           dbTables.forEach((row) => {
             html += '<tr>';
-            headers.forEach((header) => {
-              // Check if this is a date column and format accordingly
-              if (header === 'Created' || header === 'Last Updated') {
-                html += `<td>${formatDate(row[header])}</td>`;
-              } else {
-                html += `<td>${row[header]}</td>`;
-              }
+            displayHeaders.forEach((header) => {
+              html += `<td>${row[header]}</td>`;
             });
             html += '</tr>';
           });
