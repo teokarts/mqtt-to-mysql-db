@@ -23,80 +23,48 @@ async function handleT004009240001FRData(message, table, topic) {
     const data = JSON.parse(message.toString());
     console.log('Parsed data:', data);
 
+    // Get current timestamp in MySQL datetime format
     const timestamp = new Date().toISOString().slice(0, 19).replace('T', ' ');
 
+    // Extract the T004009240001FR object
+    const measurements = data.T004009240001FR;
+
+    // Initialize insert data with timestamp and topic
     const insertData = {
-      topic: topic,
       timestamp: timestamp,
+      topic: topic,
     };
 
-    // Parse the data string into an object
-    const dataString = data.T004009240001FR;
-    const regex = /Name:\s*([^,]+)\s*,\s*value:\s*\[([^\]]+)\]/g;
-    let match;
-
-    while ((match = regex.exec(dataString)) !== null) {
-      const key = match[1].trim();
-      const value = match[2].trim();
-
-      console.log('Extracted key:', key, 'Value:', value);
-
-      // Special handling for program arrays
-      if (key === 'PrepProg' || key === 'FillProg' || key === 'DigestProg') {
-        const progArray = value.split(',').map((v) => parseInt(v.trim()));
-
-        // Select specific array position based on program type
-        if (key === 'PrepProg' && progArray.length >= 11) {
-          insertData[key] = progArray[10]; // 11th element (index 10)
-          console.log(
-            `Added to insertData: ${key} = ${progArray[10]} (11th element)`
-          );
-        } else if (
-          (key === 'FillProg' || key === 'DigestProg') &&
-          progArray.length >= 9
-        ) {
-          insertData[key] = progArray[8]; // 9th element (index 8)
-          console.log(
-            `Added to insertData: ${key} = ${progArray[8]} (9th element)`
-          );
-        }
-        continue;
-      }
-
-      // Handle all other numeric values
-      const numericValue = parseFloat(value);
-      if (!isNaN(numericValue)) {
-        insertData[key] = numericValue;
-        console.log(`Added to insertData: ${key} = ${numericValue}`);
+    // Add all V1-V32 values to insertData
+    for (let i = 1; i <= 32; i++) {
+      const key = `V${i}`;
+      if (measurements.hasOwnProperty(key)) {
+        insertData[key] = measurements[key];
       }
     }
 
     console.log('Final insertData object:', insertData);
 
-    const sql = `INSERT INTO \`${table}\` SET ?`;
-
-    const pool = mysql.createPool({
-      host: process.env.DB_HOST,
-      user: process.env.DB_USER,
-      password: process.env.DB_PASSWORD,
-      database: process.env.DB_NAME,
+    // Create connection pool for THERMO database
+    const thermoPool = mysql.createPool({
+      host: process.env.THERMO_DB_HOST,
+      user: process.env.THERMO_DB_USER,
+      password: process.env.THERMO_DB_PASSWORD,
+      database: process.env.THERMO_DB_NAME,
       waitForConnections: true,
       connectionLimit: 10,
       queueLimit: 0,
     });
 
-    const connection = await pool.getConnection();
+    const sql = `INSERT INTO \`${table}\` SET ?`;
+
+    const connection = await thermoPool.getConnection();
     const [result] = await connection.query(sql, insertData);
     console.log('Query result:', result);
-    console.log(
-      'Data successfully inserted into the database (T004009240001FR format)'
-    );
+    console.log('Data successfully inserted into the THERMO database');
     connection.release();
   } catch (error) {
-    console.error(
-      'Failed to insert data into the database (T004009240001FR format):',
-      error
-    );
+    console.error('Failed to insert data into the THERMO database:', error);
     console.error('Error details:', error.message);
     if (error.sql) {
       console.error('SQL query:', error.sql);
@@ -588,18 +556,49 @@ function formatUptime(uptimeInSeconds) {
 
 app.get('/uptime', async (req, res) => {
   try {
-    const [rows, fields] = await pool.query(
-      "SELECT variable_value AS uptime_seconds FROM performance_schema.global_status WHERE variable_name='Uptime'"
-    );
-    const uptimeInSeconds = parseInt(rows[0].uptime_seconds, 10);
-    const formattedUptime = formatUptime(uptimeInSeconds);
-    res.json({ uptime: formattedUptime });
+    const pool = mysql.createPool({
+      host: process.env.DB_HOST,
+      user: process.env.DB_USER,
+      password: process.env.DB_PASSWORD,
+      database: process.env.DB_NAME,
+      waitForConnections: true,
+      connectionLimit: 10,
+      queueLimit: 0,
+    });
+
+    const [rows] = await pool.query("SHOW GLOBAL STATUS LIKE 'Uptime'");
+
+    if (rows && rows[0] && rows[0].Value) {
+      const uptimeSeconds = parseInt(rows[0].Value, 10);
+      const days = Math.floor(uptimeSeconds / (24 * 3600));
+      const hours = Math.floor((uptimeSeconds % (24 * 3600)) / 3600);
+      const minutes = Math.floor((uptimeSeconds % 3600) / 60);
+      const seconds = Math.floor(uptimeSeconds % 60);
+
+      const uptime = `${days} days ${hours} hours ${minutes} minutes ${seconds} seconds`;
+      res.json({ uptime, uptimeSeconds });
+    } else {
+      throw new Error('Unable to fetch uptime value');
+    }
+
+    await pool.end();
   } catch (error) {
     console.error('Failed to fetch server uptime:', error);
-    res.status(500).json({ error: 'Failed to fetch server uptime' });
+    res
+      .status(500)
+      .json({ error: 'Failed to fetch server uptime', details: error.message });
   }
 });
 
+app.get('/node-uptime', (req, res) => {
+  const uptimeSeconds = Math.floor(process.uptime());
+  res.json({
+    uptime: formatUptime(uptimeSeconds),
+    uptimeSeconds: uptimeSeconds,
+  });
+});
+
+// Helper function for formatting uptime
 function formatUptime(uptimeInSeconds) {
   const days = Math.floor(uptimeInSeconds / (24 * 3600));
   const hours = Math.floor((uptimeInSeconds % (24 * 3600)) / 3600);
@@ -607,12 +606,6 @@ function formatUptime(uptimeInSeconds) {
   const seconds = Math.floor(uptimeInSeconds % 60);
   return `${days} days ${hours} hours ${minutes} minutes ${seconds} seconds`;
 }
-// Add the uptime endpoint
-app.get('/node-uptime', (req, res) => {
-  const uptimeInSeconds = process.uptime();
-  const formattedNodeUptime = formatUptime(uptimeInSeconds);
-  res.json({ uptime: formattedNodeUptime });
-});
 
 app.get('/database-size', async (req, res) => {
   try {
@@ -657,14 +650,71 @@ app.get('/data', (req, res) => {
 
 app.get('/table-info', async (req, res) => {
   try {
-    const [rows, fields] = await pool.query('CALL GetTableInfo()');
-    res.json({ tableInfo: rows });
+    // Create pools for both databases
+    const mqttPool = mysql.createPool({
+      host: process.env.DB_HOST,
+      user: process.env.DB_USER,
+      password: process.env.DB_PASSWORD,
+      database: process.env.DB_NAME,
+      waitForConnections: true,
+      connectionLimit: 10,
+      queueLimit: 0,
+    });
+
+    const thermoPool = mysql.createPool({
+      host: process.env.THERMO_DB_HOST,
+      user: process.env.THERMO_DB_USER,
+      password: process.env.THERMO_DB_PASSWORD,
+      database: 'THERMO',
+      waitForConnections: true,
+      connectionLimit: 10,
+      queueLimit: 0,
+    });
+
+    // Query both databases
+    const mqttQuery = `
+          SELECT 
+              table_name as 'Table Name',
+              ROUND(((data_length + index_length) / 1024 / 1024), 2) AS 'Size (MB)',
+              table_rows as 'Row Count',
+              'mqtt' as 'Database',
+              CREATE_TIME as 'Created',
+              UPDATE_TIME as 'Last Updated'
+          FROM information_schema.TABLES 
+          WHERE table_schema = '${process.env.DB_NAME}'
+      `;
+
+    const thermoQuery = `
+          SELECT 
+              table_name as 'Table Name',
+              ROUND(((data_length + index_length) / 1024 / 1024), 2) AS 'Size (MB)',
+              table_rows as 'Row Count',
+              'THERMO' as 'Database',
+              CREATE_TIME as 'Created',
+              UPDATE_TIME as 'Last Updated'
+          FROM information_schema.TABLES 
+          WHERE table_schema = 'THERMO'
+      `;
+
+    const [mqttResults] = await mqttPool.query(mqttQuery);
+    const [thermoResults] = await thermoPool.query(thermoQuery);
+
+    // Combine results
+    const combinedResults = [...mqttResults, ...thermoResults];
+
+    res.json({ tableInfo: [combinedResults] });
+
+    // Close the pools
+    await mqttPool.end();
+    await thermoPool.end();
   } catch (error) {
     console.error('Failed to fetch table info:', error);
-    res.status(500).json({ error: 'Failed to fetch table info' });
+    res
+      .status(500)
+      .json({ error: 'Failed to fetch table info', details: error.message });
   }
 });
 
 app.listen(8080, () => {
-  console.log('Server is running on port 8080');
+  console.log('Server is running at http://localhost:8080');
 });

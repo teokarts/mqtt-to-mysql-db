@@ -1,362 +1,347 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
   <head>
-    <title>SQL Database Monitoring Page</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Database Storage Monitoring</title>
     <link
-      href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css"
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css"
       rel="stylesheet" />
-    <link rel="stylesheet" type="text/css" href="custom.css" />
+    <link rel="stylesheet" href="custom.css" />
   </head>
-
   <body>
     <div class="container py-2 mb-1">
       <div class="row d-flex top-bar align-items-center">
-        <div class="col"><h2>Database Storage Monitoring</h2></div>
+        <div class="col">
+          <h2>Database Storage Monitoring</h2>
+        </div>
         <div class="col text-end">
-          <p class="info">Database Uptime: <span id="server-time"></span></p>
-          <p class="info">Server Uptime: <span id="node-uptime"></span></p>
-          <p class="info">Database Size: <span id="db-size"></span> MB</p>
+          <div>Database Uptime: <span id="server-time"></span></div>
+          <div>Server Uptime: <span id="node-uptime"></span></div>
+          <div>Database Size: <span id="db-size"></span> MB</div>
         </div>
       </div>
     </div>
 
     <div id="panels" class="container panels-container">
-      <!-- Pane for Topic 1 -->
       <div class="row g-5">
         <div class="col-md-4">
-          <div class="panel" id="panel1">
-            <h2>Topic<br /><span>VivusDigester003/Ecu</span></h2>
+          <div id="panel1" class="panel">
+            <h2>
+              Topic: <span class="topic-title">VivusDigester003/Ecu</span>
+            </h2>
             <div class="info-box">
               <p>DB Table: <span class="tableName">Loading...</span></p>
-              <p>
-                Messages received:
-                <span class="messages">Loading...</span>
-              </p>
-              <p>
-                Messages stored:
-                <span class="dbInserts">Loading...</span>
-              </p>
-              <p>
-                Next insert in:
-                <span class="timer">Loading...</span>
-              </p>
+              <p>Messages received: <span class="messages">Loading...</span></p>
+              <p>Messages stored: <span class="dbInserts">Loading...</span></p>
+              <p>Next insert in: <span class="timer">Loading...</span></p>
             </div>
           </div>
         </div>
 
-        <!-- Pane for Topic 2 -->
         <div class="col-md-4">
-          <div class="panel" id="panel2">
-            <h2>Topic<br /><span>Poursalidis/Ecu</span></h2>
+          <div id="panel2" class="panel">
+            <h2>Topic: <span class="topic-title">Poursalidis/Ecu</span></h2>
             <div class="info-box">
               <p>DB Table: <span class="tableName">Loading...</span></p>
-              <p>
-                Messages received:
-                <span class="messages">Loading...</span>
-              </p>
-              <p>
-                Messages stored:
-                <span class="dbInserts">Loading...</span>
-              </p>
-              <p>
-                Next insert in:
-                <span class="timer">Loading...</span>
-              </p>
+              <p>Messages received: <span class="messages">Loading...</span></p>
+              <p>Messages stored: <span class="dbInserts">Loading...</span></p>
+              <p>Next insert in: <span class="timer">Loading...</span></p>
             </div>
           </div>
         </div>
-        <!-- Pane for Topic 3 -->
+
         <div class="col-md-4">
-          <div class="panel" id="panel3">
-            <h2>Topic<br /><span>VivusTHDigester004/Ecu</span></h2>
-            <div class="info-box">
-              <p>DB Table: <span class="tableName">Loading...</span></p>
-              <p>
-                Messages received:
-                <span class="messages">Loading...</span>
-              </p>
-              <p>
-                Messages stored:
-                <span class="dbInserts">Loading...</span>
-              </p>
-              <p>
-                Next insert in:
-                <span class="timer">Loading...</span>
-              </p>
-            </div>
-          </div>
-        </div>
-        <div class="col-md-4">
-          <div class="panel" id="panel4">
-            <h2>Topic<br /><span>data/tsiap01</span></h2>
-            <div class="info-box">
-              <p>DB Table: <span class="tableName">Loading...</span></p>
-              <p>
-                Messages received:
-                <span class="messages">Loading...</span>
-              </p>
-              <p>
-                Messages stored:
-                <span class="dbInserts">Loading...</span>
-              </p>
-              <p>
-                Next insert in:
-                <span class="timer">Loading...</span>
-              </p>
-            </div>
-          </div>
-        </div>
-        <div class="col-md-4">
-          <div class="panel" id="panel5">
-            <h2>Topic<br /><span>ICR2431/Ch0</span></h2>
-            <div class="info-box">
-              <p>DB Table: <span class="tableName">Loading...</span></p>
-              <p>
-                Messages received:
-                <span class="messages">Loading...</span>
-              </p>
-              <p>
-                Messages stored:
-                <span class="dbInserts">Loading...</span>
-              </p>
-              <p>
-                Next insert in:
-                <span class="timer">Loading...</span>
-              </p>
-            </div>
-          </div>
-        </div>
-        <div class="col-md-4">
-          <div class="panel" id="panel6">
-            <h2>Topic<br /><span>sala001/data</span></h2>
-            <div class="info-box">
-              <p>DB Table: <span class="tableName">Loading...</span></p>
-              <p>
-                Messages received:
-                <span class="messages">Loading...</span>
-              </p>
-              <p>
-                Messages stored:
-                <span class="dbInserts">Loading...</span>
-              </p>
-              <p>
-                Next insert in:
-                <span class="timer">Loading...</span>
-              </p>
-            </div>
-          </div>
-        </div>
-        <div class="col-md-4">
-          <div id="panel7" class="panel">
+          <div id="panel3" class="panel">
             <h2>
-              Topic<br />
-              <span>AirBlock001/data</span>
+              Topic: <span class="topic-title">VivusTHDigester004/Ecu</span>
             </h2>
             <div class="info-box">
-              DB Table: <span class="tableName">Loading...</span><br />
-              Messages received: <span class="messages">Loading...</span><br />
-              Messages stored: <span class="dbInserts">Loading...</span><br />
-              Next insert in: <span class="timer">Loading...</span>
+              <p>DB Table: <span class="tableName">Loading...</span></p>
+              <p>Messages received: <span class="messages">Loading...</span></p>
+              <p>Messages stored: <span class="dbInserts">Loading...</span></p>
+              <p>Next insert in: <span class="timer">Loading...</span></p>
             </div>
           </div>
         </div>
+
+        <div class="col-md-4">
+          <div id="panel4" class="panel">
+            <h2>Topic: <span class="topic-title">data/tsiap01</span></h2>
+            <div class="info-box">
+              <p>DB Table: <span class="tableName">Loading...</span></p>
+              <p>Messages received: <span class="messages">Loading...</span></p>
+              <p>Messages stored: <span class="dbInserts">Loading...</span></p>
+              <p>Next insert in: <span class="timer">Loading...</span></p>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-md-4">
+          <div id="panel5" class="panel">
+            <h2>Topic: <span class="topic-title">ICR2431/Ch0</span></h2>
+            <div class="info-box">
+              <p>DB Table: <span class="tableName">Loading...</span></p>
+              <p>Messages received: <span class="messages">Loading...</span></p>
+              <p>Messages stored: <span class="dbInserts">Loading...</span></p>
+              <p>Next insert in: <span class="timer">Loading...</span></p>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-md-4">
+          <div id="panel6" class="panel">
+            <h2>Topic: <span class="topic-title">sala001/data</span></h2>
+            <div class="info-box">
+              <p>DB Table: <span class="tableName">Loading...</span></p>
+              <p>Messages received: <span class="messages">Loading...</span></p>
+              <p>Messages stored: <span class="dbInserts">Loading...</span></p>
+              <p>Next insert in: <span class="timer">Loading...</span></p>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-md-4">
+          <div id="panel7" class="panel">
+            <h2>Topic: <span class="topic-title">AirBlock001/data</span></h2>
+            <div class="info-box">
+              <p>DB Table: <span class="tableName">Loading...</span></p>
+              <p>Messages received: <span class="messages">Loading...</span></p>
+              <p>Messages stored: <span class="dbInserts">Loading...</span></p>
+              <p>Next insert in: <span class="timer">Loading...</span></p>
+            </div>
+          </div>
+        </div>
+
         <div class="col-md-4">
           <div id="panel8" class="panel">
             <h2>
-              Topic<br />
-              <span>Agrivoltaics001/data</span>
+              Topic: <span class="topic-title">Agrivoltaics001/data</span>
             </h2>
             <div class="info-box">
-              DB Table: <span class="tableName">Loading...</span><br />
-              Messages received: <span class="messages">Loading...</span><br />
-              Messages stored: <span class="dbInserts">Loading...</span><br />
-              Next insert in: <span class="timer">Loading...</span>
+              <p>DB Table: <span class="tableName">Loading...</span></p>
+              <p>Messages received: <span class="messages">Loading...</span></p>
+              <p>Messages stored: <span class="dbInserts">Loading...</span></p>
+              <p>Next insert in: <span class="timer">Loading...</span></p>
             </div>
           </div>
         </div>
+
         <div class="col-md-4">
           <div id="panel9" class="panel">
             <h2>
-              Topic<br />
-              <span>T004009240001FR/data</span>
+              Topic: <span class="topic-title">T004009240001FR/data</span>
             </h2>
             <div class="info-box">
-              DB Table: <span class="tableName">Loading...</span><br />
-              Messages received: <span class="messages">Loading...</span><br />
-              Messages stored: <span class="dbInserts">Loading...</span><br />
-              Next insert in: <span class="timer">Loading...</span>
+              <p>DB Table: <span class="tableName">Loading...</span></p>
+              <p>Messages received: <span class="messages">Loading...</span></p>
+              <p>Messages stored: <span class="dbInserts">Loading...</span></p>
+              <p>Next insert in: <span class="timer">Loading...</span></p>
             </div>
           </div>
         </div>
       </div>
     </div>
+
     <div id="table-info" class="container">
-      <h2 class="table-header mb-3">Database Table Information</h2>
+      <h2 id="database-table-information" class="table-header mb-3">
+        Database Table Information
+      </h2>
       <div id="table-info-content"></div>
     </div>
-    <script>
-      function updatePane(paneId, data) {
-        const pane = document.getElementById(paneId);
-        pane.querySelector('.tableName').textContent = data.tableName;
-        pane.querySelector('.messages').textContent = data.active
-          ? data.messageCount
-          : `${data.messageCount} (stopped)`;
-        pane.querySelector('.dbInserts').textContent = data.dbInsertCount;
-        pane.querySelector('.timer').textContent = data.active
-          ? formatTimeRemaining(data.timeRemaining)
-          : 'No data received';
-      }
-
-      function formatTimeRemaining(timeRemainingMs) {
-        const minutes = Math.floor(timeRemainingMs / 60000);
-        const seconds = Math.floor((timeRemainingMs % 60000) / 1000);
-        return `${minutes} minutes and ${
-          seconds < 10 ? '0' : ''
-        }${seconds} seconds`;
-      }
-
-      function fetchData() {
-        // fetch('http://34.154.71.209:8080/data')
-        fetch('/data')
-          .then((response) => response.json())
-          .then((data) => {
-            if (data.stats) {
-              data.stats.forEach((stat) => {
-                if (stat.topic === 'VivusDigester003/Ecu') {
-                  updatePane('panel1', stat);
-                } else if (stat.topic === 'Poursalidis/Ecu') {
-                  updatePane('panel2', stat);
-                } else if (stat.topic === 'VivusTHDigester004/Ecu') {
-                  updatePane('panel3', stat);
-                } else if (stat.topic === 'data/tsiap01') {
-                  updatePane('panel4', stat);
-                } else if (stat.topic === 'ICR2431/Ch0') {
-                  updatePane('panel5', stat);
-                } else if (stat.topic === 'sala001/data') {
-                  updatePane('panel6', stat);
-                } else if (stat.topic === 'AirBlock001/data') {
-                  updatePane('panel7', stat);
-                } else if (stat.topic === 'Agrivoltaics001/data') {
-                  updatePane('panel8', stat);
-                } else if (stat.topic === 'T004009240001FR/data') {
-                  updatePane('panel9', stat);
-                }
-              });
-            }
-          })
-          .catch((error) => console.error('Fetch error:', error));
-      }
-
-      setInterval(fetchData, 5000);
-    </script>
 
     <script>
-      function updateServerTime() {
-        fetch('/uptime')
-          // fetch('http://34.154.71.209:8080/uptime')
-          .then((response) => response.json())
-          .then((data) => {
-            const serverTimeSpan = document.getElementById('server-time');
-            serverTimeSpan.textContent = data.uptime;
-          })
-          .catch((error) => console.error('Fetch server uptime error:', error));
+      let serverUptimeSeconds = 0;
+      let nodeUptimeSeconds = 0;
+      let lastServerUpdate = 0;
+
+      function formatTime(milliseconds) {
+        if (milliseconds < 0) return '0:00';
+        const minutes = Math.floor(milliseconds / 60000);
+        const seconds = ((milliseconds % 60000) / 1000).toFixed(0);
+        return `${minutes}:${seconds.padStart(2, '0')}`;
       }
 
-      updateServerTime();
-      setInterval(updateServerTime, 1000); // Update every second
-
-      function updateNodeUptime() {
-        fetch('/node-uptime')
-          // fetch('http://34.154.71.209:8080/node-uptime')
-          .then((response) => response.json())
-          .then((data) => {
-            const nodeUptimeSpan = document.getElementById('node-uptime');
-            nodeUptimeSpan.textContent = data.uptime;
-          })
-          .catch((error) => console.error('Fetch node uptime error:', error));
+      function formatUptime(seconds) {
+        const days = Math.floor(seconds / (24 * 3600));
+        const hours = Math.floor((seconds % (24 * 3600)) / 3600);
+        const minutes = Math.floor((seconds % 3600) / 60);
+        const remainingSeconds = Math.floor(seconds % 60);
+        return `${days} days ${hours} hours ${minutes} minutes ${remainingSeconds} seconds`;
       }
+      function updatePanels(data) {
+        data.stats.forEach((stat, index) => {
+          const panel = document.getElementById(`panel${index + 1}`);
+          if (panel) {
+            const tableNameEl = panel.querySelector('.tableName');
+            const messagesEl = panel.querySelector('.messages');
+            const dbInsertsEl = panel.querySelector('.dbInserts');
+            const timerEl = panel.querySelector('.timer');
 
-      updateNodeUptime();
-      setInterval(updateNodeUptime, 1000); // Update every second
-    </script>
+            if (tableNameEl) tableNameEl.textContent = stat.tableName;
+            if (messagesEl) messagesEl.textContent = stat.messageCount;
+            if (dbInsertsEl) dbInsertsEl.textContent = stat.dbInsertCount;
+            if (timerEl) timerEl.textContent = formatTime(stat.timeRemaining);
 
-    <script>
-      function fetchDatabaseSize() {
-        // fetch('http://34.154.71.209:8080/database-size')
-        fetch('/database-size')
-          .then((response) => response.json())
-          .then((data) => {
-            const dbSizeSpan = document.getElementById('db-size');
-            dbSizeSpan.textContent = data.databaseSize;
-          })
-          .catch((error) =>
-            console.error('Failed to fetch database size:', error)
-          );
-      }
-
-      fetchDatabaseSize();
-      // Fetch database size every 1 hour
-      setInterval(fetchDatabaseSize, 60 * 60 * 1000);
-    </script>
-    <script>
-      function fetchTableInfo() {
-        // fetch('http://34.154.71.209:8080/table-info')
-        fetch('/table-info')
-          .then((response) => response.json())
-          .then((data) => {
-            console.log('Received table info:', data); // Log the received data
-            if (data.tableInfo && data.tableInfo.length > 0) {
-              const tableInfoContent =
-                document.getElementById('table-info-content');
-              tableInfoContent.innerHTML = ''; // Clear previous content
-
-              const tableInfoTable = document.createElement('table');
-              tableInfoTable.classList.add(
-                'table',
-                'table-striped',
-                'table-dark'
-              );
-              const tableHeader = document.createElement('thead');
-              tableHeader.innerHTML = `
-            <tr>
-              <th>Table Name</th>
-              <th>Estimated Rows</th>
-              <th>Exact Rows</th>
-              <th>Table Size (MB)</th>
-            </tr>
-          `;
-              tableInfoTable.appendChild(tableHeader);
-
-              const tableInfoBody = document.createElement('tbody');
-              // Iterate through the first element of the tableInfo array (actual table data)
-              data.tableInfo[0].forEach((tableData) => {
-                // Create a new row for each set of table data
-                const row = document.createElement('tr');
-
-                // Iterate through the keys of each tableData object
-                Object.keys(tableData).forEach((key) => {
-                  // Create a new cell for each value and append it to the row
-                  const cell = document.createElement('td');
-                  cell.textContent = tableData[key];
-                  row.appendChild(cell);
-                });
-
-                // Append the row to the table body
-                tableInfoBody.appendChild(row);
-              });
-
-              tableInfoTable.appendChild(tableInfoBody);
-
-              tableInfoContent.appendChild(tableInfoTable);
+            // Update panel active/inactive status
+            if (stat.active) {
+              panel.classList.remove('inactive');
             } else {
-              console.log('No table info received or empty array'); // Log if no data or empty array
+              panel.classList.add('inactive');
             }
-          })
-          .catch((error) => console.error('Fetch table info error:', error));
+          }
+        });
       }
 
-      fetchTableInfo();
-      setInterval(fetchTableInfo, 60 * 60 * 1000);
+      function formatDate(dateString) {
+        if (!dateString) return '';
+
+        // Split the ISO string into its components
+        const match = dateString.match(
+          /(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})/
+        );
+        if (!match) return dateString;
+
+        // Extract components [year, month, day, hour, minute, second]
+        const [_, year, month, day, hour, minute, second] = match;
+
+        // Add 9 hours to match the database time
+        let adjustedHour = (parseInt(hour) + 16) % 24;
+        adjustedHour = adjustedHour.toString().padStart(2, '0');
+
+        // Return formatted string
+        return `${day}-${month}-${year} ${adjustedHour}:${minute}:${second}`;
+      }
+
+      function updateTableInfo(data) {
+        const container = document.getElementById('table-info-content');
+        if (!data.tableInfo || !data.tableInfo[0]) {
+          container.innerHTML = '<p>No table information available</p>';
+          return;
+        }
+
+        let html =
+          '<div class="table-responsive"><table class="table table-dark">';
+        html += '<thead><tr>';
+
+        // Add headers based on the first row's keys
+        const headers = Object.keys(data.tableInfo[0][0]);
+        headers.forEach((header) => {
+          html += `<th>${header}</th>`;
+        });
+        html += '</tr></thead><tbody>';
+
+        // Add rows for each database's tables
+        data.tableInfo.forEach((dbTables) => {
+          dbTables.forEach((row) => {
+            html += '<tr>';
+            headers.forEach((header) => {
+              // Check if this is a date column and format accordingly
+              if (header === 'Created' || header === 'Last Updated') {
+                html += `<td>${formatDate(row[header])}</td>`;
+              } else {
+                html += `<td>${row[header]}</td>`;
+              }
+            });
+            html += '</tr>';
+          });
+        });
+
+        html += '</tbody></table></div>';
+        container.innerHTML = html;
+      }
+
+      async function fetchAndUpdateData() {
+        try {
+          const response = await fetch('/data');
+          const data = await response.json();
+          updatePanels(data);
+        } catch (error) {
+          console.error('Error fetching data:', error);
+        }
+      }
+
+      async function fetchAndUpdateTableInfo() {
+        try {
+          const response = await fetch('/table-info');
+          const data = await response.json();
+          updateTableInfo(data);
+        } catch (error) {
+          console.error('Error fetching table info:', error);
+        }
+      }
+
+      async function updateServerTime() {
+        try {
+          const response = await fetch('/uptime');
+          const data = await response.json();
+          if (data.uptimeSeconds) {
+            serverUptimeSeconds = parseInt(data.uptimeSeconds, 10);
+            lastServerUpdate = Date.now();
+            document.getElementById('server-time').textContent = data.uptime;
+          }
+        } catch (error) {
+          console.error('Error fetching server uptime:', error);
+        }
+      }
+
+      async function updateNodeUptime() {
+        try {
+          const response = await fetch('/node-uptime');
+          const data = await response.json();
+          if (data.uptimeSeconds) {
+            nodeUptimeSeconds = parseInt(data.uptimeSeconds, 10);
+          }
+          document.getElementById('node-uptime').textContent = data.uptime;
+        } catch (error) {
+          console.error('Error fetching node uptime:', error);
+        }
+      }
+
+      async function updateDatabaseSize() {
+        try {
+          const response = await fetch('/database-size');
+          const data = await response.json();
+          document.getElementById('db-size').textContent = data.databaseSize;
+        } catch (error) {
+          console.error('Error fetching database size:', error);
+        }
+      }
+
+      // Update uptime displays every second
+      setInterval(() => {
+        // Only increment if we've received an initial value
+        if (serverUptimeSeconds > 0) {
+          const timeSinceLastUpdate = Math.floor(
+            (Date.now() - lastServerUpdate) / 1000
+          );
+          const currentUptime = serverUptimeSeconds + timeSinceLastUpdate;
+          document.getElementById('server-time').textContent =
+            formatUptime(currentUptime);
+        }
+
+        if (nodeUptimeSeconds > 0) {
+          nodeUptimeSeconds++;
+          document.getElementById('node-uptime').textContent =
+            formatUptime(nodeUptimeSeconds);
+        }
+      }, 1000);
+
+      // Initial fetch
+      fetchAndUpdateData();
+      fetchAndUpdateTableInfo();
+      updateServerTime();
+      updateNodeUptime();
+      updateDatabaseSize();
+
+      // Set up intervals for periodic updates
+      setInterval(fetchAndUpdateData, 1000); // Update panels every second
+      setInterval(fetchAndUpdateTableInfo, 60000); // Update table info every minute
+      setInterval(() => {
+        updateServerTime();
+        updateNodeUptime();
+      }, 60000); // Sync real uptime values every minute
+      setInterval(updateDatabaseSize, 300000); // Update database size every 5 minutes
     </script>
   </body>
 </html>
