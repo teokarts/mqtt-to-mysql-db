@@ -13,7 +13,96 @@ const topicsConfig = {
   'ICR2431/Ch0': 'KARANIS',
   'sala001/data': 'SALASIDIS',
   'AirBlock001/data': 'AIRBLOCKDEMO',
+  'Agrivoltaics001/data': 'AGRIVOLTAICS',
+  'T004009240001FR/data': 'T004001FR',
 };
+
+async function handleT004009240001FRData(message, table, topic) {
+  try {
+    console.log('Received message:', message.toString());
+    const data = JSON.parse(message.toString());
+    console.log('Parsed data:', data);
+
+    const timestamp = new Date().toISOString().slice(0, 19).replace('T', ' ');
+
+    const insertData = {
+      topic: topic,
+      timestamp: timestamp,
+    };
+
+    // Parse the data string into an object
+    const dataString = data.T004009240001FR;
+    const regex = /Name:\s*([^,]+)\s*,\s*value:\s*\[([^\]]+)\]/g;
+    let match;
+
+    while ((match = regex.exec(dataString)) !== null) {
+      const key = match[1].trim();
+      const value = match[2].trim();
+
+      console.log('Extracted key:', key, 'Value:', value);
+
+      // Special handling for program arrays
+      if (key === 'PrepProg' || key === 'FillProg' || key === 'DigestProg') {
+        const progArray = value.split(',').map((v) => parseInt(v.trim()));
+
+        // Select specific array position based on program type
+        if (key === 'PrepProg' && progArray.length >= 11) {
+          insertData[key] = progArray[10]; // 11th element (index 10)
+          console.log(
+            `Added to insertData: ${key} = ${progArray[10]} (11th element)`
+          );
+        } else if (
+          (key === 'FillProg' || key === 'DigestProg') &&
+          progArray.length >= 9
+        ) {
+          insertData[key] = progArray[8]; // 9th element (index 8)
+          console.log(
+            `Added to insertData: ${key} = ${progArray[8]} (9th element)`
+          );
+        }
+        continue;
+      }
+
+      // Handle all other numeric values
+      const numericValue = parseFloat(value);
+      if (!isNaN(numericValue)) {
+        insertData[key] = numericValue;
+        console.log(`Added to insertData: ${key} = ${numericValue}`);
+      }
+    }
+
+    console.log('Final insertData object:', insertData);
+
+    const sql = `INSERT INTO \`${table}\` SET ?`;
+
+    const pool = mysql.createPool({
+      host: process.env.DB_HOST,
+      user: process.env.DB_USER,
+      password: process.env.DB_PASSWORD,
+      database: process.env.DB_NAME,
+      waitForConnections: true,
+      connectionLimit: 10,
+      queueLimit: 0,
+    });
+
+    const connection = await pool.getConnection();
+    const [result] = await connection.query(sql, insertData);
+    console.log('Query result:', result);
+    console.log(
+      'Data successfully inserted into the database (T004009240001FR format)'
+    );
+    connection.release();
+  } catch (error) {
+    console.error(
+      'Failed to insert data into the database (T004009240001FR format):',
+      error
+    );
+    console.error('Error details:', error.message);
+    if (error.sql) {
+      console.error('SQL query:', error.sql);
+    }
+  }
+}
 
 // Assuming this is at the top level of your index.js
 let statsPerTopic = Object.keys(topicsConfig).reduce((acc, topic) => {
@@ -67,6 +156,10 @@ async function insertData(topic, message) {
     await handleSalasidis001Data(message, table, topic);
   } else if (topic === 'AirBlock001/data') {
     await handleAirBlockData(message, table, topic);
+  } else if (topic === 'T004009240001FR/data') {
+    await handleT004009240001FRData(message, table, topic);
+  } else if (topic === 'Agrivoltaics001/data') {
+    await handleAgrivoltaicsData(message, topic);
   } else {
     // Existing logic for handling the old format messages
     const data = JSON.parse(message.toString());
@@ -105,6 +198,45 @@ async function insertData(topic, message) {
         error
       );
     }
+  }
+}
+
+// New function to handle Agrivoltaics data
+async function handleAgrivoltaicsData(message, topic) {
+  try {
+    const data = JSON.parse(message.toString());
+    let sql = `INSERT INTO AGRIVOLTAICS SET ?`;
+    let dataObj = { topic: topic };
+
+    // Process the data
+    data.d.forEach((item) => {
+      // Replace colon with underscore in the tag name
+      const columnName = item.tag.replace(':', '_');
+      dataObj[columnName] = item.value;
+    });
+
+    // Add timestamp
+    dataObj.timestamp = new Date(data.ts)
+      .toISOString()
+      .slice(0, 19)
+      .replace('T', ' ');
+
+    const pool = mysql.createPool({
+      host: process.env.DB_HOST,
+      user: process.env.DB_USER,
+      password: process.env.DB_PASSWORD,
+      database: process.env.DB_NAME,
+      waitForConnections: true,
+      connectionLimit: 10,
+      queueLimit: 0,
+    });
+
+    const connection = await pool.getConnection();
+    await connection.query(sql, dataObj);
+    console.log('Data successfully inserted into the AGRIVOLTAICS table');
+    connection.release();
+  } catch (error) {
+    console.error('Failed to insert data into the AGRIVOLTAICS table:', error);
   }
 }
 

@@ -160,6 +160,34 @@
             </div>
           </div>
         </div>
+        <div class="col-md-4">
+          <div id="panel8" class="panel">
+            <h2>
+              Topic<br />
+              <span>Agrivoltaics001/data</span>
+            </h2>
+            <div class="info-box">
+              DB Table: <span class="tableName">Loading...</span><br />
+              Messages received: <span class="messages">Loading...</span><br />
+              Messages stored: <span class="dbInserts">Loading...</span><br />
+              Next insert in: <span class="timer">Loading...</span>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div id="panel9" class="panel">
+            <h2>
+              Topic<br />
+              <span>T004009240001FR/data</span>
+            </h2>
+            <div class="info-box">
+              DB Table: <span class="tableName">Loading...</span><br />
+              Messages received: <span class="messages">Loading...</span><br />
+              Messages stored: <span class="dbInserts">Loading...</span><br />
+              Next insert in: <span class="timer">Loading...</span>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
     <div id="table-info" class="container">
@@ -188,7 +216,7 @@
       }
 
       function fetchData() {
-        // fetch('http://34.154.173.7:8080/data')
+        // fetch('http://34.154.71.209:8080/data')
         fetch('/data')
           .then((response) => response.json())
           .then((data) => {
@@ -208,6 +236,10 @@
                   updatePane('panel6', stat);
                 } else if (stat.topic === 'AirBlock001/data') {
                   updatePane('panel7', stat);
+                } else if (stat.topic === 'Agrivoltaics001/data') {
+                  updatePane('panel8', stat);
+                } else if (stat.topic === 'T004009240001FR/data') {
+                  updatePane('panel9', stat);
                 }
               });
             }
