@@ -15,6 +15,7 @@ const topicsConfig = {
   'AirBlock001/data': 'AIRBLOCKDEMO',
   'Agrivoltaics001/data': 'AGRIVOLTAICS',
   'T004009240001FR/data': 'T004001FR',
+  'HliasEukarpia/data': 'DELTAIOAEF',
 };
 
 async function handleT004009240001FRData(message, table, topic) {

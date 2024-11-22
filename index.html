@@ -140,6 +140,18 @@
             </div>
           </div>
         </div>
+        <div class="col-md-4">
+          <div id="panel10" class="panel">
+            <h2>Topic: <span class="topic-title">HliasEukarpia/data</span></h2>
+
+            <div class="info-box">
+              <p>DB Table: <span class="tableName">Loading...</span></p>
+              <p>Messages received: <span class="messages">Loading...</span></p>
+              <p>Messages stored: <span class="dbInserts">Loading...</span></p>
+              <p>Next insert in: <span class="timer">Loading...</span></p>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -153,7 +165,6 @@
     <script>
       let serverUptimeSeconds = 0;
       let nodeUptimeSeconds = 0;
-      let lastServerUpdate = 0;
 
       function formatTime(milliseconds) {
         if (milliseconds < 0) return '0:00';
@@ -169,6 +180,7 @@
         const remainingSeconds = Math.floor(seconds % 60);
         return `${days} days ${hours} hours ${minutes} minutes ${remainingSeconds} seconds`;
       }
+
       function updatePanels(data) {
         data.stats.forEach((stat, index) => {
           const panel = document.getElementById(`panel${index + 1}`);
@@ -207,7 +219,7 @@
               bannerEl.style.display = 'none';
               panel.style.backgroundColor = '#202020'; // normal background
             } else {
-              //statusEl.textContent = 'STOPPED';
+              // statusEl.textContent = 'STOPPED';
               statusEl.style.display = 'block';
               bannerEl.style.display = 'block';
               statusEl.style.color = 'red';
@@ -216,26 +228,6 @@
             }
           }
         });
-      }
-
-      function formatDate(dateString) {
-        if (!dateString) return '';
-
-        // Split the ISO string into its components
-        const match = dateString.match(
-          /(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})/
-        );
-        if (!match) return dateString;
-
-        // Extract components [year, month, day, hour, minute, second]
-        const [_, year, month, day, hour, minute, second] = match;
-
-        // Add 9 hours to match the database time
-        let adjustedHour = (parseInt(hour) + 16) % 24;
-        adjustedHour = adjustedHour.toString().padStart(2, '0');
-
-        // Return formatted string
-        return `${day}-${month}-${year} ${adjustedHour}:${minute}:${second}`;
       }
 
       function updateTableInfo(data) {
@@ -278,6 +270,7 @@
 
       async function fetchAndUpdateData() {
         try {
+          //const response = await fetch('http://34.154.44.143:8080/data');
           const response = await fetch('/data');
           const data = await response.json();
           updatePanels(data);
@@ -288,6 +281,7 @@
 
       async function fetchAndUpdateTableInfo() {
         try {
+          // const response = await fetch('http://34.154.44.143:8080/table-info');
           const response = await fetch('/table-info');
           const data = await response.json();
           updateTableInfo(data);
@@ -298,13 +292,13 @@
 
       async function updateServerTime() {
         try {
+          // const response = await fetch('http://34.154.44.143:8080/uptime');
           const response = await fetch('/uptime');
           const data = await response.json();
           if (data.uptimeSeconds) {
             serverUptimeSeconds = parseInt(data.uptimeSeconds, 10);
-            lastServerUpdate = Date.now();
-            document.getElementById('server-time').textContent = data.uptime;
           }
+          document.getElementById('server-time').textContent = data.uptime;
         } catch (error) {
           console.error('Error fetching server uptime:', error);
         }
@@ -312,6 +306,7 @@
 
       async function updateNodeUptime() {
         try {
+          // const response = await fetch('http://34.154.44.143:8080/node-uptime');
           const response = await fetch('/node-uptime');
           const data = await response.json();
           if (data.uptimeSeconds) {
@@ -325,6 +320,9 @@
 
       async function updateDatabaseSize() {
         try {
+          // const response = await fetch(
+          //   'http://34.154.44.143:8080/database-size'
+          // );
           const response = await fetch('/database-size');
           const data = await response.json();
           document.getElementById('db-size').textContent = data.databaseSize;
@@ -335,21 +333,12 @@
 
       // Update uptime displays every second
       setInterval(() => {
-        // Only increment if we've received an initial value
-        if (serverUptimeSeconds > 0) {
-          const timeSinceLastUpdate = Math.floor(
-            (Date.now() - lastServerUpdate) / 1000
-          );
-          const currentUptime = serverUptimeSeconds + timeSinceLastUpdate;
-          document.getElementById('server-time').textContent =
-            formatUptime(currentUptime);
-        }
-
-        if (nodeUptimeSeconds > 0) {
-          nodeUptimeSeconds++;
-          document.getElementById('node-uptime').textContent =
-            formatUptime(nodeUptimeSeconds);
-        }
+        serverUptimeSeconds++;
+        nodeUptimeSeconds++;
+        document.getElementById('server-time').textContent =
+          formatUptime(serverUptimeSeconds);
+        document.getElementById('node-uptime').textContent =
+          formatUptime(nodeUptimeSeconds);
       }, 1000);
 
       // Initial fetch
