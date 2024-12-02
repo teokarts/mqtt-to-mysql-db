@@ -4,6 +4,7 @@ const cors = require('cors');
 const mysql = require('mysql2/promise');
 const mqtt = require('mqtt');
 const util = require('util');
+const StatusTracker = require('./statusTracker');
 
 const topicsConfig = {
   'VivusDigester003/Ecu': 'vivus03',
@@ -17,6 +18,16 @@ const topicsConfig = {
   'T004009240001FR/data': 'T004001FR',
   'HliasEukarpia/data': 'DELTAIOAEF',
 };
+
+const statusTracker = new StatusTracker({
+  host: process.env.THERMO_DB_HOST,
+  user: process.env.THERMO_DB_USER,
+  password: process.env.THERMO_DB_PASSWORD,
+  database: process.env.THERMO_DB_NAME,
+  waitForConnections: true,
+  connectionLimit: 10,
+  queueLimit: 0,
+});
 
 async function handleT004009240001FRData(message, table, topic) {
   try {
@@ -474,13 +485,26 @@ function updateStats(topic, message) {
   }
 }
 
-client.on('message', (receivedTopic, message) => {
+client.on('message', async (receivedTopic, message) => {
+  // Add logging to debug message reception
+  console.log(`Received message on ${receivedTopic}`);
+
+  // Process status tracking for T004009240001FR/data topic
+  if (receivedTopic === 'T004009240001FR/data') {
+    try {
+      console.log('Processing message for status tracking...');
+      await statusTracker.processMessage(message);
+    } catch (error) {
+      console.error('Error processing status changes:', error);
+    }
+  }
+
+  // Continue with existing message handling
   if (topicsConfig.hasOwnProperty(receivedTopic)) {
-    // console.log(`Received message on ${receivedTopic}:`, message.toString());
-    lastMessages[receivedTopic] = message; // Store the most recent message
+    lastMessages[receivedTopic] = message;
     if (statsPerTopic[receivedTopic]) {
       statsPerTopic[receivedTopic].messageCount += 1;
-      statsPerTopic[receivedTopic].lastMessageTime = Date.now(); // Update the last message time
+      statsPerTopic[receivedTopic].lastMessageTime = Date.now();
     } else {
       console.error(`No stats entry found for topic: ${receivedTopic}`);
     }
@@ -745,6 +769,33 @@ app.get('/table-info', async (req, res) => {
     res
       .status(500)
       .json({ error: 'Failed to fetch table info', details: error.message });
+  }
+});
+
+// Add endpoint to fetch status events
+app.get('/api/status-events', async (req, res) => {
+  try {
+    const { startDate, endDate, eventType } = req.query;
+    let sql = 'SELECT * FROM TH001_EVENTS WHERE 1=1';
+    const params = [];
+
+    if (startDate && endDate) {
+      sql += ' AND timestamp BETWEEN ? AND ?';
+      params.push(startDate, endDate);
+    }
+
+    if (eventType) {
+      sql += ' AND event_type = ?';
+      params.push(eventType);
+    }
+
+    sql += ' ORDER BY timestamp DESC LIMIT 1000';
+
+    const [rows] = await pool.query(sql, params);
+    res.json(rows);
+  } catch (error) {
+    console.error('Error fetching status events:', error);
+    res.status(500).json({ error: 'Failed to fetch status events' });
   }
 });
 
