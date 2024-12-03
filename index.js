@@ -262,7 +262,7 @@ const topicsConfig = mqttConfigs.reduce((acc, config) => {
   return { ...acc, ...config.topics };
 }, {});
 
-// New function to handle Agrivoltaics data
+// ΕΚΕΤΑ data storage
 async function handleAgrivoltaicsData(message, topic) {
   try {
     const data = JSON.parse(message.toString());
@@ -298,6 +298,181 @@ async function handleAgrivoltaicsData(message, topic) {
     connection.release();
   } catch (error) {
     console.error('Failed to insert data into the AGRIVOLTAICS table:', error);
+  }
+}
+
+// KARANIS Μέτρηση Στάθμης
+async function handleNewFormatData(message, table) {
+  try {
+    const data = JSON.parse(message.toString());
+    let timestamp;
+
+    if (data.hasOwnProperty('ts')) {
+      // Existing format with timezone (ts: "2024-04-19T00:24:39+0300")
+      timestamp = data.ts;
+    } else if (data.hasOwnProperty('time')) {
+      // New format without timezone (time: "2024-04-19 00:23:58.031")
+      // Parse the string and adjust based on your needs
+      const timeParts = data.time.split(' ');
+      const dateString = timeParts[0];
+      const timeString = timeParts[1] || '00:00:00'; // Handle missing time
+      timestamp = `${dateString}T${timeString}`; // Assuming format YYYY-MM-DDTHH:mm:ss
+    } else {
+      throw new Error('Missing timestamp field in new format JSON');
+    }
+
+    const value = parseFloat(data.value); // Convert value to a number
+    const SH = 6;
+    const TL = 4;
+    const SL = 0;
+    const TH = 20;
+
+    // Calculate b2
+    const b2 = (SH * TL - SL * TH) / (SH - SL);
+
+    // Calculate a2
+    const a2 = (TH - b2) / SH;
+
+    // Calculate value to be inserted
+    const valueToBeInserted = Math.round((SH - (value - b2) / a2) * 100) / 100;
+
+    const insertData = {
+      topic: data.topic, // Assuming "topic" field exists for ICR2431/Ch0
+      timestamp: timestamp, // Assuming "time" field holds the timestamp
+      value: valueToBeInserted,
+      transmitter_value: data.value,
+    };
+
+    let sql = `INSERT INTO \`${table}\` SET ?`;
+
+    const pool = mysql.createPool({
+      host: process.env.DB_HOST,
+      user: process.env.DB_USER,
+      password: process.env.DB_PASSWORD,
+      database: process.env.DB_NAME,
+      waitForConnections: true,
+      connectionLimit: 10,
+      queueLimit: 0,
+    });
+    const connection = await pool.getConnection();
+    await connection.query(sql, insertData);
+    console.log('Data successfully inserted into the database (new format)');
+    connection.release();
+  } catch (error) {
+    console.error(
+      'Failed to insert data into the database (new format):',
+      error
+    );
+  }
+}
+
+// Αρχική κατάσταση για αποθήκευση στον πίνακα των ALARMS
+let lastAlarmState = {
+  operationStatus: null,
+  latestFault: null,
+};
+
+// ΣΑΛΑΣΙΔΗΣ data monitoring και alarm logging
+async function handleSalasidis001Data(message, table, topic) {
+  try {
+    console.log('Received message:', message.toString());
+    const data = JSON.parse(message.toString());
+    console.log('Parsed data:', data);
+
+    const timestamp = new Date().toISOString().slice(0, 19).replace('T', ' ');
+
+    const insertData = {
+      topic: topic,
+      timestamp: timestamp,
+    };
+
+    console.log('Sala001Data:', data.Sala001Data);
+
+    // Parse the Sala001Data string into an object
+    const sala001DataString = data.Sala001Data;
+    const regex = /Name:\s*([^,]+)\s*,\s*value:\s*\[([^\]]+)\]/g;
+    let match;
+
+    while ((match = regex.exec(sala001DataString)) !== null) {
+      const key = match[1].trim();
+      const value = match[2].trim();
+
+      console.log('Extracted key:', key, 'Value:', value);
+
+      const numericValue = parseFloat(value);
+
+      if (!isNaN(numericValue)) {
+        insertData[key] = numericValue;
+        console.log(`Added to insertData: ${key} = ${numericValue}`);
+      } else {
+        console.log(`Skipped invalid numeric value for ${key}`);
+      }
+    }
+
+    console.log('Final insertData object:', insertData);
+
+    // Generate the SQL query dynamically based on the received fields
+    const fields = Object.keys(insertData).join(', ');
+    const placeholders = Object.keys(insertData)
+      .map(() => '?')
+      .join(', ');
+    const sql = `INSERT INTO \`${table}\` SET ?`;
+
+    console.log('SQL query:', sql);
+    console.log('SQL values:', Object.values(insertData));
+
+    const pool = mysql.createPool({
+      host: process.env.DB_HOST,
+      user: process.env.DB_USER,
+      password: process.env.DB_PASSWORD,
+      database: process.env.DB_NAME,
+      waitForConnections: true,
+      connectionLimit: 10,
+      queueLimit: 0,
+    });
+
+    const connection = await pool.getConnection();
+    const [result] = await connection.query(sql, insertData);
+    console.log('Query result:', result);
+    console.log(
+      'Data successfully inserted into the database (Sala001 format)'
+    );
+
+    // Check and insert alarm if necessary
+    if (insertData.OperationStatus === 3) {
+      if (
+        lastAlarmState.operationStatus !== 3 ||
+        (lastAlarmState.operationStatus === 3 &&
+          lastAlarmState.latestFault !== insertData.LatestFault)
+      ) {
+        const insertAlarmSql =
+          'INSERT INTO SALALARMS (timestamp, LatestFault) VALUES (?, ?)';
+        await connection.query(insertAlarmSql, [
+          timestamp,
+          insertData.LatestFault,
+        ]);
+        console.log('New alarm inserted into SALALARMS table');
+
+        // Update the last alarm state
+        lastAlarmState.operationStatus = insertData.OperationStatus;
+        lastAlarmState.latestFault = insertData.LatestFault;
+      }
+    } else {
+      // Reset the last alarm state if OperationStatus is not 3
+      lastAlarmState.operationStatus = insertData.OperationStatus;
+      lastAlarmState.latestFault = null;
+    }
+
+    connection.release();
+  } catch (error) {
+    console.error(
+      'Failed to insert data into the database (Sala001 format):',
+      error
+    );
+    console.error('Error details:', error.message);
+    if (error.sql) {
+      console.error('SQL query:', error.sql);
+    }
   }
 }
 
