@@ -262,6 +262,45 @@ const topicsConfig = mqttConfigs.reduce((acc, config) => {
   return { ...acc, ...config.topics };
 }, {});
 
+// New function to handle Agrivoltaics data
+async function handleAgrivoltaicsData(message, topic) {
+  try {
+    const data = JSON.parse(message.toString());
+    let sql = `INSERT INTO AGRIVOLTAICS SET ?`;
+    let dataObj = { topic: topic };
+
+    // Process the data
+    data.d.forEach((item) => {
+      // Replace colon with underscore in the tag name
+      const columnName = item.tag.replace(':', '_');
+      dataObj[columnName] = item.value;
+    });
+
+    // Add timestamp
+    dataObj.timestamp = new Date(data.ts)
+      .toISOString()
+      .slice(0, 19)
+      .replace('T', ' ');
+
+    const pool = mysql.createPool({
+      host: process.env.DB_HOST,
+      user: process.env.DB_USER,
+      password: process.env.DB_PASSWORD,
+      database: process.env.DB_NAME,
+      waitForConnections: true,
+      connectionLimit: 10,
+      queueLimit: 0,
+    });
+
+    const connection = await pool.getConnection();
+    await connection.query(sql, dataObj);
+    console.log('Data successfully inserted into the AGRIVOLTAICS table');
+    connection.release();
+  } catch (error) {
+    console.error('Failed to insert data into the AGRIVOLTAICS table:', error);
+  }
+}
+
 // Express application setup
 const app = express();
 app.use(cors());
